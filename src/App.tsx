@@ -1,196 +1,355 @@
-import React, { useState } from 'react';
-import {
-    Users, LayoutDashboard, FileText, Settings,
-    Search, Bell, Plus, Filter, Download,
-    Cpu, Sun, Zap, Info, Clock, ExternalLink
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Bell, RefreshCw, FileText, Plus } from 'lucide-react';
+import JSZip from 'jszip';
+import { supabase } from './lib/supabase';
+import { useAuth } from './contexts/AuthContext';
+import { useClients, Client } from './hooks/useClients';
+import { useBills, Bill } from './hooks/useBills';
+import { logAuditEvent } from './hooks/useAuditLog';
+import { parseFaturaPDF } from './utils/pdfParser';
+import { generateClientReport } from './utils/reportGenerator';
 
-// Mock Data for APsystems Clients
-const MOCK_CLIENTS = [
-    { id: 1, name: 'Jenny Wilson', uc: '8839201', platform: 'APsystems', projectId: 'P-1029', status: 'Completo', activity: 'Sep 12, 09:10 AM', created: '1 month ago', generation: 450.2 },
-    { id: 2, name: 'David Lane', uc: '2291028', platform: 'APsystems', projectId: 'P-1030', status: 'Divergente', activity: 'Sep 12, 10:15 AM', created: '2 months ago', generation: 380.5 },
-    { id: 3, name: 'Robert Fox', uc: '7721039', platform: 'APsystems', projectId: 'P-1031', status: 'Incompleto', activity: 'Sep 11, 04:30 PM', created: '3 months ago', generation: 0 },
-    { id: 4, name: 'Kristin Watson', uc: '1129384', platform: 'APsystems', projectId: 'P-1032', status: 'Completo', activity: 'Sep 10, 11:20 AM', created: '1 week ago', generation: 512.8 },
-];
+// Components
+import Sidebar from './components/Sidebar';
+import DashboardView from './components/DashboardView';
+import ClientsListView from './components/ClientsListView';
+import ClientDetailView from './components/ClientDetailView';
+import { NewClientModal, ImportModal } from './components/Modals';
+
+// ── Types ──────────────────────────────────────────────────────────────────
+export type ActiveClient = Client & {
+    generation: number;
+    latestBill: Bill | null;
+    status: 'Completo' | 'Divergente' | 'Incompleto';
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function clientStatus(bill: Bill | null): 'Completo' | 'Divergente' | 'Incompleto' {
+    if (!bill) return 'Incompleto';
+    if ((bill.confidence ?? 1) < 0.8) return 'Divergente';
+    return 'Completo';
+}
+
+export function calcStats(gen: number, bill: Bill, investment: number) {
+    const injected = bill.injected_energy;
+    const selfConsumption = Math.max(0, gen - injected);
+    const totalConsumption = bill.consumption + selfConsumption;
+    const tarifaMedia = bill.total_value / (bill.consumption || 1);
+    const economyValue = gen * tarifaMedia;
+    const reductionPercent = (economyValue / (bill.total_value + economyValue)) * 100;
+    const payback = investment / (economyValue * 12 || 1);
+    return {
+        economyValue,
+        reductionPercent: reductionPercent.toFixed(0),
+        payback: payback.toFixed(1),
+        totalConsumption,
+    };
+}
+
+async function apsFetch(payload: { action: 'list' | 'stats' | 'details'; system_id?: string; page?: number; size?: number }) {
+    const { data, error } = await supabase.functions.invoke('aps-proxy-deep-sync', {
+        body: { ...payload, size: payload.size || 100 }
+    });
+    if (error || !data?.success) throw new Error(data?.error || 'Erro na conexão com AP-Deep-Sync');
+    return data.data;
+}
 
 function App() {
-    const [activeTab, setActiveTab] = useState('Leads');
+    const { user, signOut } = useAuth();
+    const { clients, loading: clientsLoading, refetch: refetchClients, create: createClient, update: updateClient, remove: removeClient } = useClients();
+    const { bills, create: createBill, update: updateBill } = useBills();
+
+    const [activeTab, setActiveTab] = useState('Dashboard');
+    const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('Todos');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editData, setEditData] = useState<Partial<Bill>>({});
+    const [showNewClientModal, setShowNewClientModal] = useState(false);
+    const [newClientForm, setNewClientForm] = useState({ name: '', uc: '', platform: 'APsystems', system_id: '', investment: 0 });
+    const [isSavingClient, setIsSavingClient] = useState(false);
+    const [isSyncingAPI, setIsSyncingAPI] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const [importList, setImportList] = useState<any[]>([]);
+    const [showImportModal, setShowImportModal] = useState(false);
+
+    const billMap = useMemo(() => {
+        const map = new Map<string, Bill>();
+        bills.forEach(b => {
+            const existing = map.get(b.client_id);
+            if (!existing || (b.created_at ?? '') > (existing.created_at ?? '')) {
+                map.set(b.client_id, b);
+            }
+        });
+        return map;
+    }, [bills]);
+
+    const syncSystemsFromAPI = async () => {
+        setIsSyncingAPI(true);
+        try {
+            const listResult = await apsFetch({ action: 'list', page: 1, size: 200 });
+            let systems = [];
+            const deepData = listResult?.data?.data || listResult?.data || listResult;
+            if (Array.isArray(deepData)) systems = deepData;
+            else if (deepData?.list) systems = deepData.list;
+            else if (deepData?.systems) systems = deepData.systems;
+
+            console.log(`[Deep Sync] Iniciando sincronização de ${systems.length} sistemas...`);
+
+            for (const sys of systems) {
+                const sid = sys.sid || sys.id || sys.systemId || sys.system_id;
+
+                let details: any = null;
+                try {
+                    const detailRes = await apsFetch({ action: 'details', system_id: sid });
+                    details = detailRes?.data?.data || detailRes?.data || detailRes;
+                } catch (e) { console.warn(`[Deep Sync] Falha detalhes de ${sid}`, e); }
+
+                let stats: any = null;
+                try {
+                    const statsRes = await apsFetch({ action: 'stats', system_id: sid });
+                    stats = statsRes?.data?.data || statsRes?.data || statsRes;
+                } catch (e) { console.warn(`[Deep Sync] Falha stats de ${sid}`, e); }
+
+                const name = details?.username || sys.username || sys.customerAccount || sys.sname || `Usina ${sid}`;
+                const city = details?.city || details?.cityName || sys.city || 'Não informada';
+                const state = details?.state || details?.province || sys.state || '—';
+                const systemSize = parseFloat(details?.capacity || sys.capacity || '0');
+                const lastGeneration = parseFloat(stats?.energy || stats?.data?.energy || stats?.todayEnergy || sys.last_generation || '0');
+
+                const existing = clients.find(c => c.system_id === sid);
+                const metaData: any = {
+                    name, city, state, country: details?.country || 'Brasil',
+                    ecu_id: Array.isArray(details?.ecu) ? details.ecu[0] : (details?.ecuId || null),
+                    system_size: systemSize, system_type: details?.type || 'Fotovoltaico',
+                    activation_date: details?.createDate || sys.create_date || null,
+                    api_status: (details?.light || sys.light) === 1 ? 'Normal' : (details?.light || sys.light) === 2 ? 'Atenção' : 'Erro',
+                    last_generation: lastGeneration
+                };
+
+                if (existing) await updateClient(existing.id, metaData);
+                else await createClient({ ...metaData, uc: `ATENDIMENTO_${sid}`, platform: 'APsystems', system_id: sid, investment: 0 });
+            }
+
+            await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, { systems_processed: systems.length });
+            alert(`Deep Sync concluído!`);
+            refetchClients();
+        } catch (err: any) { alert(`Erro no Sync Engine: ${err.message}`); }
+        setIsSyncingAPI(false);
+    };
+
+    const handleFetchSystems = async () => {
+        setIsImporting(true);
+        try {
+            const result = await apsFetch({ action: 'list' });
+            let systems = [];
+            if (Array.isArray(result)) systems = result;
+            else if (result?.list) systems = result.list;
+            else if (result?.data?.list) systems = result.data.list;
+            else if (result?.data?.systems) systems = result.data.systems;
+            setImportList(systems);
+            setShowImportModal(true);
+        } catch (err: any) { alert(`Erro: ${err.message}`); }
+        setIsImporting(false);
+    };
+
+    const handleImportSystem = async (sys: any) => {
+        const id = sys.sid || sys.id || sys.systemId || sys.system_id;
+        const name = sys.sname || sys.name || sys.customerAccount || `Usina ${id}`;
+
+        if (clients.some(c => c.system_id === id)) return alert(`Já cadastrado.`);
+
+        try {
+            await createClient({ name, uc: `TEMP_${id}`, platform: 'APsystems', system_id: id, investment: 0 });
+            alert(`Importado!`);
+            setImportList(prev => prev.filter(s => (s.sid || s.id || s.systemId) !== id));
+            refetchClients();
+        } catch (err: any) { alert(`Erro: ${err.message}`); }
+    };
+
+    const enrichedClients = useMemo(() =>
+        clients.map(c => {
+            const bill = billMap.get(c.id) || null;
+            return {
+                ...c,
+                generation: (c as any).last_generation || 0,
+                latestBill: bill,
+                status: clientStatus(bill),
+            } as ActiveClient;
+        }), [clients, billMap]);
+
+    const filteredClients = useMemo(() =>
+        enrichedClients.filter(c => {
+            const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.uc.includes(searchTerm);
+            const matchStatus = statusFilter === 'Todos' || c.status === statusFilter;
+            return matchSearch && matchStatus;
+        }), [enrichedClients, searchTerm, statusFilter]);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        setIsUploading(true);
+        for (const file of Array.from(e.target.files)) {
+            try {
+                const parsed = await parseFaturaPDF(file);
+                const client = clients.find(c => c.uc === parsed.uc);
+                if (!client) { alert(`UC ${parsed.uc} não encontrada.`); continue; }
+                await createBill({
+                    client_id: client.id, competency: parsed.competency,
+                    consumption: parsed.consumption, injected_energy: parsed.injectedEnergy,
+                    total_value: parsed.totalValue, street_lighting: parsed.streetLighting,
+                    confidence: parsed.confidence,
+                });
+                await logAuditEvent('PDF_UPLOAD', client.id, null, { competency: parsed.competency });
+            } catch (err: any) { alert(`Erro: ${err.message}`); }
+        }
+        setIsUploading(false);
+    };
+
+    const handleExportPDF = async (ac: ActiveClient) => {
+        const bill = ac.latestBill;
+        if (!bill) return alert('Vincule uma fatura.');
+        const s = calcStats(ac.generation, bill, ac.investment ?? 0);
+        await generateClientReport('report-content', {
+            clientName: ac.name, uc: ac.uc, competency: bill.competency,
+            generation: `${ac.generation.toFixed(0)} kWh`,
+            economy: `R$ ${s.economyValue.toFixed(2)}`,
+            reduction: `${s.reductionPercent}%`,
+            payback: `${s.payback} anos`,
+            injected: `${bill.injected_energy} kWh`,
+            totalValue: `R$ ${bill.total_value.toFixed(2)}`,
+        });
+    };
+
+    const handleBatchExport = async () => {
+        const valid = enrichedClients.filter(c => c.status === 'Completo' && c.latestBill);
+        if (!valid.length) return alert('Nenhum sistema "Completo".');
+        setIsUploading(true);
+        const zip = new JSZip();
+        for (const ac of valid) {
+            setSelectedClientId(ac.id);
+            await new Promise(r => setTimeout(r, 700));
+            const bill = ac.latestBill!;
+            const s = calcStats(ac.generation, bill, ac.investment ?? 0);
+            const blob = await generateClientReport('report-content', {
+                clientName: ac.name, uc: ac.uc, competency: bill.competency,
+                generation: `${ac.generation.toFixed(0)} kWh`,
+                economy: `R$ ${s.economyValue.toFixed(2)}`,
+                reduction: `${s.reductionPercent}%`, payback: `${s.payback} anos`,
+                injected: `${bill.injected_energy} kWh`, totalValue: `R$ ${bill.total_value.toFixed(2)}`,
+            }, false);
+            if (blob) zip.file(`relatorio_${ac.name.replace(/\s/g, '_')}.pdf`, blob);
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(zipBlob);
+        a.download = `relatorios.zip`; a.click();
+        setIsUploading(false);
+        setSelectedClientId(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!selectedClientId) return;
+        const ac = enrichedClients.find(c => c.id === selectedClientId)!;
+        const existingBill = ac.latestBill;
+        try {
+            if (existingBill?.id) await updateBill(existingBill.id, editData);
+            else await createBill({ ...editData as any, client_id: selectedClientId });
+            setIsEditing(false);
+        } catch (err: any) { alert(`Erro: ${err.message}`); }
+    };
+
+    const selectedAC = enrichedClients.find(c => c.id === selectedClientId) ?? null;
+    const selectedBill = selectedAC?.latestBill ?? null;
+    const selectedStats = selectedAC && selectedBill ? calcStats(selectedAC.generation, selectedBill, (selectedAC as any).investment ?? 0) : null;
 
     return (
         <div className="app-shell">
-            {/* SIDEBAR */}
-            <aside className="sidebar">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', marginBottom: '24px' }}>
-                    <div style={{
-                        padding: '5px',
-                        background: '#FEF3C7',
-                        borderRadius: '8px',
-                        color: '#F59E0B',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(245, 158, 11, 0.1)'
-                    }}>
-                        <Sun size={20} fill="currentColor" strokeWidth={2.5} />
-                    </div>
-                    <h1 style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--color-text-primary)' }}>Solary Data</h1>
-                </div>
+            <NewClientModal show={showNewClientModal} setShow={setShowNewClientModal} onSubmit={async (e) => {
+                e.preventDefault(); setIsSavingClient(true);
+                try { await createClient(newClientForm as any); setShowNewClientModal(false); } catch (err: any) { alert(err.message); }
+                setIsSavingClient(false);
+            }} form={newClientForm} setForm={setNewClientForm} loading={isSavingClient} />
 
+            <ImportModal show={showImportModal} setShow={setShowImportModal} list={importList} onImport={handleImportSystem} />
 
-                <div style={{ position: 'relative', marginBottom: '16px' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-                    <input
-                        type="text"
-                        placeholder="Search"
-                        style={{
-                            width: '100%', padding: '8px 12px 8px 36px',
-                            borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)',
-                            background: 'var(--color-bg-base)', fontSize: '13px'
-                        }}
-                    />
-                </div>
+            <Sidebar
+                user={user as any} activeTab={activeTab} setActiveTab={setActiveTab}
+                selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId}
+                clientsCount={clients.length} incompleteCount={enrichedClients.filter(c => c.status === 'Incompleto').length}
+                signOut={signOut} handleExportPDF={handleExportPDF} handleStartEdit={() => {
+                    setEditData(selectedBill ? { ...selectedBill } : { client_id: selectedClientId!, competency: 'MAR/2026', total_value: 0, consumption: 0, injected_energy: 0, street_lighting: 0, confidence: 0.5 });
+                    setIsEditing(true);
+                }}
+                removeClient={removeClient}
+                selectedAC={selectedAC}
+            />
 
-                <div className="text-nav-label-group">Menu</div>
-                <nav>
-                    <a href="#" className="nav-item">
-                        <LayoutDashboard size={18} />
-                        <span className="text-nav-item">Dashboard</span>
-                    </a>
-                    <a href="#" className={`nav-item ${activeTab === 'Leads' ? 'active' : ''}`} onClick={() => setActiveTab('Leads')}>
-                        <Users size={18} />
-                        <span className="text-nav-item">Clients</span>
-                    </a>
-                    <a href="#" className="nav-item">
-                        <FileText size={18} />
-                        <span className="text-nav-item">Reports</span>
-                    </a>
-                </nav>
-
-                <div className="text-nav-label-group">Platform</div>
-                <nav>
-                    <a href="#" className="nav-item">
-                        <Cpu size={18} />
-                        <span className="text-nav-item">APsystems</span>
-                        <span style={{ marginLeft: 'auto', fontSize: '11px', background: '#D1FAE5', color: '#065F46', padding: '2px 6px', borderRadius: '999px' }}>Online</span>
-                    </a>
-                </nav>
-
-                <div style={{ marginTop: 'auto', padding: '12px', display: 'flex', alignItems: 'center', gap: '10px', borderTop: '1px solid var(--color-border)' }}>
-                    <img src="https://ui-avatars.com/api/?name=User&background=6366F1&color=fff" className="avatar" alt="User" />
-                    <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600 }}>Solar Admin</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>admin@solary.com</div>
-                    </div>
-                </div>
-            </aside>
-
-            {/* MAIN CONTENT */}
             <main className="main-content">
-                <header className="topbar">
-                    <h2 className="text-page-title">Sistemas Ativos</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div style={{ position: 'relative' }}>
-                            <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-                            <input
-                                type="text"
-                                placeholder="Pesquisar sistemas..."
-                                style={{ width: '220px', padding: '8px 12px 8px 36px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}
-                            />
+                {!selectedClientId && (
+                    <header className="topbar">
+                        <h2 className="text-page-title">{activeTab === 'Dashboard' ? 'Dashboard' : activeTab === 'Clients' ? 'Sistemas Ativos' : 'Central de Faturas'}</h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ position: 'relative' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+                                <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                    style={{ width: '200px', padding: '8px 12px 8px 34px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '13px' }} />
+                            </div>
+                            <button onClick={refetchClients} className="btn-icon"><RefreshCw size={18} /></button>
+                            <button className="btn-icon" style={{ position: 'relative' }}>
+                                <Bell size={20} />
+                                {enrichedClients.filter(c => c.status === 'Incompleto').length > 0 && <div className="badge-dot" />}
+                            </button>
                         </div>
-                        <button style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer' }}>
-                            <Bell size={20} color="#374151" />
-                            <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '8px', height: '8px', background: '#EF4444', borderRadius: '50%', border: '2px solid #fff' }}></div>
-                        </button>
-                    </div>
-                </header>
+                    </header>
+                )}
 
                 <div className="content-area">
-                    {/* TOOLBAR */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-outline" style={{ background: 'var(--color-bg-base)', border: 'none' }}>☰ List</button>
-                            <button className="btn btn-outline">⊞ Grid</button>
+                    {selectedAC ? (
+                        <ClientDetailView
+                            selectedAC={selectedAC} selectedBill={selectedBill} selectedStats={selectedStats}
+                            isEditing={isEditing} editData={editData} setEditData={setEditData}
+                            handleSaveEdit={handleSaveEdit} setIsEditing={setIsEditing}
+                            handleStartEdit={() => setIsEditing(true)}
+                            setSelectedClientId={setSelectedClientId}
+                            handleExportPDF={handleExportPDF}
+                            syncSystemsFromAPI={syncSystemsFromAPI}
+                            isSyncingAPI={isSyncingAPI}
+                            updateClientName={(newName) => updateClient(selectedAC.id, { name: newName })}
+                        />
+                    ) : activeTab === 'Dashboard' ? (
+                        <DashboardView
+                            clients={clients} enrichedClients={enrichedClients}
+                            totalGeneration={enrichedClients.reduce((a, c) => a + (c.generation || 0), 0)}
+                            totalEconomy={enrichedClients.reduce((a, c) => {
+                                const bill = c.latestBill;
+                                if (!bill) return a;
+                                return a + calcStats(c.generation, bill, (c as any).investment ?? 0).economyValue;
+                            }, 0)}
+                            incompleteCount={enrichedClients.filter(c => c.status === 'Incompleto').length}
+                            handleBatchExport={handleBatchExport} isUploading={isUploading}
+                            setSelectedClientId={setSelectedClientId} setActiveTab={setActiveTab}
+                        />
+                    ) : activeTab === 'Bills' ? (
+                        <div className="empty-state">
+                            <div className="empty-icon"><FileText size={28} color="#6366F1" /></div>
+                            <h3>Envio Automático de Faturas</h3>
+                            <p>O sistema identifica a UC automaticamente e vincula ao sistema correspondente.</p>
+                            <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
+                                <Plus size={16} /> {isUploading ? 'Processando...' : 'Selecionar Faturas PDF'}
+                                <input type="file" multiple accept=".pdf" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
+                            </label>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-outline"><Filter size={16} /> Filter</button>
-                            <button className="btn btn-outline"><Download size={16} /> Export</button>
-                            <button className="btn btn-primary"><Plus size={16} /> Add New System</button>
-                        </div>
-                    </div>
-
-                    {/* TABLE */}
-                    <div className="table-card">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '40px' }}><input type="checkbox" /></th>
-                                    <th>Cliente</th>
-                                    <th>UC / ID Sistema</th>
-                                    <th>Geração Mensal (kWh)</th>
-                                    <th>Status</th>
-                                    <th>Atividade</th>
-                                    <th>Fonte</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {MOCK_CLIENTS.map(client => (
-                                    <tr key={client.id}>
-                                        <td><input type="checkbox" /></td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <img src={`https://ui-avatars.com/api/?name=${client.name}&background=random`} className="avatar" alt="" />
-                                                <div>
-                                                    <div className="text-lead-name">{client.name}</div>
-                                                    <div className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <Zap size={12} /> {client.projectId}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="text-body" style={{ fontWeight: 500 }}>{client.uc}</div>
-                                            <div className="text-small">{client.platform}</div>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Sun size={14} color="#F59E0B" />
-                                                <span style={{ fontWeight: 600 }}>{client.generation > 0 ? client.generation.toFixed(1) : '--'}</span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`badge badge-${client.status === 'Completo' ? 'cold' : client.status === 'Divergente' ? 'warm' : 'hot'}`}>
-                                                {client.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="text-body" style={{ fontSize: '13px' }}>{client.activity}</div>
-                                            <div className="text-small" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Clock size={12} /> {client.created}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <ExternalLink size={14} color="var(--color-primary)" />
-                                                <span className="text-small" style={{ color: 'var(--color-primary)', fontWeight: 500 }}>APsystems</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {/* PAGINATION */}
-                        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div className="text-small">Show <span style={{ fontWeight: 600, border: '1px solid var(--color-border)', padding: '2px 8px', borderRadius: '4px' }}>11 ▾</span> items per page</div>
-                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                <button className="btn btn-outline" style={{ padding: '4px 8px', width: '32px' }}>←</button>
-                                <button className="btn btn-primary" style={{ padding: '4px 8px', width: '32px', height: '32px' }}>1</button>
-                                <button className="btn btn-outline" style={{ padding: '4px 8px', width: '32px', height: '32px' }}>2</button>
-                                <button className="btn btn-outline" style={{ padding: '4px 8px', width: '32px', height: '32px' }}>3</button>
-                                <button className="btn btn-outline" style={{ padding: '4px 8px', width: '32px' }}>→</button>
-                            </div>
-                        </div>
-                    </div>
+                    ) : (
+                        <ClientsListView
+                            statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+                            isSyncingAPI={isSyncingAPI} syncSystemsFromAPI={syncSystemsFromAPI}
+                            handleFetchSystems={handleFetchSystems} isImporting={isImporting}
+                            handleBatchExport={handleBatchExport} isUploading={isUploading}
+                            setShowNewClientModal={setShowNewClientModal}
+                            filteredClients={filteredClients} setSelectedClientId={setSelectedClientId}
+                            handleExportPDF={handleExportPDF}
+                        />
+                    )}
                 </div>
             </main>
         </div>
