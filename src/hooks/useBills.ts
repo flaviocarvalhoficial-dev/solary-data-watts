@@ -61,5 +61,11 @@ export function useBills() {
         setBills(prev => prev.filter(b => b.id !== id));
     };
 
-    return { bills, setBills, loading, fetch, create, update, remove };
+    const resetForClient = async (clientId: string): Promise<void> => {
+        const { error } = await supabase.from('bills').delete().eq('client_id', clientId);
+        if (error) throw new Error(error.message);
+        setBills(prev => prev.filter(b => b.client_id !== clientId));
+    };
+
+    return { bills, setBills, loading, fetch, create, update, remove, resetForClient };
 }

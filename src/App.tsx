@@ -29,7 +29,7 @@ function App() {
     const { user, signOut } = useAuth();
     const { clients, loading: clientsLoading, refetch: refetchClients, create: createClient, update: updateClient, remove: removeClient } = useClients();
     const { systems, refetch: refetchSystems, upsert: upsertSystem, update: updateSystem } = useSystems();
-    const { bills, create: createBill, update: updateBill } = useBills();
+    const { bills, create: createBill, update: updateBill, resetForClient } = useBills();
 
     const handleUpdateClientOrSystem = async (id: string, data: any) => {
         try {
@@ -54,10 +54,10 @@ function App() {
     const [isUploading, setIsUploading] = useState(false);
     const [branding, setBranding] = useState({
         company_name: 'Solary Data',
-        primary_color: '#6366F1',
-        secondary_color: '#10B981',
+        primary_color: '#E8593C',
+        secondary_color: '#1A1A1A',
         logo_url: '',
-        report_footer: 'Este relatório foi gerado automaticamente pelo sistema Solary Data.'
+        report_footer: 'Este relatório executivo foi gerado pelo sistema Solary Data • Veselty Engine.'
     });
 
     // Load Branding
@@ -531,6 +531,21 @@ function App() {
         } catch (err: any) { alert(`Erro ao excluir: ${err.message}`); }
     };
 
+    const handleResetClientData = async (clientId: string) => {
+        if (!confirm('Deseja RESETAR todos os dados (Faturas/Geração) deste cliente? \n\nIsso removerá as associações de PDF e lançamentos manuais, voltando o sistema ao estado inicial.')) return;
+        try {
+            setIsSyncingAPI(true);
+            await resetForClient(clientId);
+            await refetchClients();
+            setSelectedClientId(null);
+            alert('Dados resetados com sucesso.');
+        } catch (err: any) {
+            alert(`Erro ao resetar: ${err.message}`);
+        } finally {
+            setIsSyncingAPI(false);
+        }
+    };
+
     const handleClearAll = async () => {
         if (!clients.length) return;
         if (!confirm("⚠️ ATENÇÃO: Deseja excluir TODOS os sistemas do seu banco de dados? Esta ação não pode ser desfeita.")) return;
@@ -634,6 +649,7 @@ function App() {
                             handleFileUpload={(e) => handleFileUpload(e, selectedAC.id)}
                             isUploading={isUploading}
                             branding={branding}
+                            handleResetData={handleResetClientData}
                         />
                     ) : activeTab === 'Settings' ? (
                         <SettingsView user={user} branding={branding} setBranding={setBranding} />

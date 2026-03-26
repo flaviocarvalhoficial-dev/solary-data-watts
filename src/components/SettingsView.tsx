@@ -94,19 +94,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
 
     return (
         <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-                <div style={{ padding: '10px', background: 'var(--color-primary)', borderRadius: '12px', color: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-8)' }}>
+                <div style={{ padding: '10px', background: 'var(--color-primary)', borderRadius: 'var(--radius-md)', color: '#fff' }}>
                     <SettingsIcon size={24} />
                 </div>
                 <div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 700 }}>Configurações do Sistema</h2>
+                    <h2 style={{ fontSize: '22px', fontWeight: 700 }}>Configurações do Sistema</h2>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>Personalize sua plataforma e o estilo dos relatórios.</p>
                 </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 {/* Branding Section */}
-                <div className="table-card" style={{ padding: '24px', gridColumn: 'span 2' }}>
+                <div className="table-card" style={{ padding: 'var(--space-6)', gridColumn: 'span 2' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px' }}>
                         <Building2 size={20} color="var(--color-primary)" />
                         <h3 style={{ fontSize: '16px', fontWeight: 600 }}>Identidade Visual (Relatórios)</h3>
@@ -121,7 +121,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                                 value={localBranding.company_name}
                                 onChange={e => setLocalBranding(prev => ({ ...prev, company_name: e.target.value }))}
                                 placeholder="Ex: Solary Energy Solutions"
-                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--color-border)', background: '#F9FAFB' }}
+                                style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-bg-muted)' }}
                             />
                         </div>
 
@@ -165,11 +165,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
 
                         <div style={{ gridColumn: 'span 2' }}>
                             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '8px' }}>LOGO DA EMPRESA</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: '#F9FAFB', padding: '16px', borderRadius: '12px', border: '1px dashed var(--color-border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', background: 'var(--color-bg-muted)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-border)' }}>
                                 {localBranding.logo_url ? (
-                                    <img src={localBranding.logo_url} alt="Logo preview" style={{ height: '60px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />
+                                    <img src={localBranding.logo_url} alt="Logo preview" style={{ height: '60px', width: 'auto', borderRadius: 'var(--radius-sm)', objectFit: 'contain' }} />
                                 ) : (
-                                    <div style={{ height: '60px', width: '60px', borderRadius: '6px', background: '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}>
+                                    <div style={{ height: '60px', width: '60px', borderRadius: 'var(--radius-sm)', background: 'var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}>
                                         <Palette size={24} />
                                     </div>
                                 )}
@@ -191,7 +191,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                                 value={localBranding.report_footer}
                                 onChange={e => setLocalBranding(prev => ({ ...prev, report_footer: e.target.value }))}
                                 rows={2}
-                                style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid var(--color-border)', background: '#F9FAFB', resize: 'none', fontSize: '13px' }}
+                                style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-bg-muted)', resize: 'none', fontSize: '13px' }}
                             />
                         </div>
                     </div>
@@ -208,7 +208,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                             {(user?.email || 'A').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                            <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{user?.email}</p>
+                            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{user?.email}</p>
                             <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Status: Administrador Master</p>
                         </div>
                     </div>

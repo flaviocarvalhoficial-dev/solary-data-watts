@@ -1,4 +1,5 @@
-import { RefreshCw, Zap, FileArchive, Plus, Download, PencilLine } from 'lucide-react';
+import React from 'react';
+import { RefreshCw, Zap, FileArchive, Plus, Download, PencilLine, FileText, ChevronRight, ExternalLink } from 'lucide-react';
 import { ActiveClient } from '../utils/solarHelpers';
 
 interface ClientsListViewProps {
@@ -56,61 +57,99 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
     };
 
     return (
-        <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+        <div style={{ padding: '0 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     {['Todos', 'Completo', 'Divergente', 'Incompleto'].map(s => (
                         <button key={s} onClick={() => setStatusFilter(s)}
-                            className={`btn ${statusFilter === s ? 'btn-primary' : 'btn-outline'}`}
-                            style={{ padding: '6px 14px', fontSize: '13px' }}>{s}
+                            style={{
+                                padding: '6px 14px',
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                borderRadius: '999px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                background: statusFilter === s ? 'var(--color-primary)' : 'rgba(232, 89, 60, 0.10)',
+                                color: statusFilter === s ? '#FFFFFF' : 'var(--color-primary)'
+                            }}>
+                            {statusFilter === s && <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#FFF', borderRadius: '50%', marginRight: '6px' }} />}
+                            {s}
                         </button>
                     ))}
-                    {selectedIds.length > 0 && (
-                        <button className="btn btn-outline" style={{ color: '#DC2626', borderColor: '#DC2626' }} onClick={handleDeleteSelected}>
-                            Excluir Selecionados ({selectedIds.length})
-                        </button>
-                    )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn-outline" style={{ color: '#9CA3AF' }} onClick={handleClearAll}>
-                        Limpar Tudo
-                    </button>
-                    <button className="btn btn-outline" onClick={() => syncSystemsFromAPI()} disabled={isSyncingAPI}>
-                        <RefreshCw size={15} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando...' : 'Atualizar dados energéticos'}
-                    </button>
-                    <button className="btn btn-outline" onClick={handleFetchSystems} disabled={isImporting}>
-                        <Zap size={15} color="#F59E0B" /> {isImporting ? 'Buscando...' : `Importar ${currentPlatform || 'API'}`}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {currentPlatform === 'APsystems' && (
+                        <a
+                            href="https://apsystemsema.com/ema/logoutEMA.action"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline"
+                            style={{ fontSize: '13px', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '6px 12px', textDecoration: 'none' }}
+                        >
+                            <ExternalLink size={14} /> Portal EMA
+                        </a>
+                    )}
+                    {currentPlatform === 'Sungrow' && (
+                        <a
+                            href="https://br.sungrowpower.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline"
+                            style={{ fontSize: '13px', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '6px 12px', textDecoration: 'none' }}
+                        >
+                            <ExternalLink size={14} /> Portal Sungrow
+                        </a>
+                    )}
+                    {currentPlatform === 'GoodWe' && (
+                        <a
+                            href="https://br.goodwe.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-outline"
+                            style={{ fontSize: '13px', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '6px 12px', textDecoration: 'none' }}
+                        >
+                            <ExternalLink size={14} /> Portal GoodWe
+                        </a>
+                    )}
+                    <button className="btn btn-outline" style={{ fontSize: '13px', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '6px 12px' }} onClick={() => syncSystemsFromAPI()} disabled={isSyncingAPI}>
+                        <RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sync...' : 'Energy Sync'}
                     </button>
                     {currentPlatform === 'APsystems' && setShowXLSImportModal && (
-                        <button className="btn btn-outline" style={{ borderColor: '#6366F1', color: '#6366F1' }} onClick={() => setShowXLSImportModal(true)}>
-                            <Plus size={15} /> Importar XLS
+                        <button className="btn btn-outline" style={{ fontSize: '13px', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '6px 12px' }} onClick={() => setShowXLSImportModal(true)}>
+                            <Plus size={14} /> Importar XLS
                         </button>
                     )}
-                    <button className="btn btn-outline" onClick={handleBatchExport} disabled={isUploading}>
-                        <FileArchive size={15} /> {isUploading ? 'ZIP...' : 'Exportar ZIP'}
-                    </button>
-                    <button className="btn btn-primary" onClick={() => setShowNewClientModal(true)}>
-                        <Plus size={15} /> Novo Sistema
+                    <button className="btn btn-primary" style={{ background: '#1A1A1A', color: '#FFF', border: 'none', borderRadius: '8px', fontSize: '13px' }} onClick={() => setShowNewClientModal(true)}>
+                        <Plus size={14} /> Novo Sistema
                     </button>
                 </div>
             </div>
-            <div className="table-card" style={{ overflow: 'hidden' }}>
+
+            <div className="card" style={{ overflow: 'hidden', padding: '0' }}>
                 <div style={{ overflowX: 'auto' }}>
-                    <table>
-                        <thead>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead style={{ background: 'var(--color-bg-base)' }}>
                             <tr>
-                                <th style={{ width: 36 }}>
+                                <th style={{ width: 44, padding: '12px 16px', textAlign: 'left' }}>
                                     <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
                                 </th>
-                                <th>Cliente</th><th>Cidade / Local</th><th>Geração Total</th><th>Hoje</th><th>Data Inst.</th><th>Status ECU</th><th>Competência</th><th style={{ width: 48 }}>PDF</th>
+                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Cliente</th>
+                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Local / UC</th>
+                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Geração Total</th>
+                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Hj (kWh)</th>
+                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Status</th>
+                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Relatório</th>
+                                <th style={{ width: 80, borderBottom: '1px solid var(--color-border)' }}></th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredClients.length === 0 ? (
-                                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)' }}>Nenhum sistema encontrado.</td></tr>
+                                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)', fontSize: '13px' }}>Nenhum sistema encontrado para os filtros atuais.</td></tr>
                             ) : filteredClients.map(ac => (
-                                <tr key={ac.id} onClick={() => setSelectedClientId(ac.id)} style={{ cursor: 'pointer', background: selectedIds.includes(ac.id) ? '#F5F3FF' : 'transparent' }}>
-                                    <td>
+                                <tr key={ac.id} onClick={() => setSelectedClientId(ac.id)}
+                                    style={{ cursor: 'pointer', borderBottom: '1px solid var(--color-border)', backgroundColor: selectedIds.includes(ac.id) ? 'rgba(232, 89, 60, 0.05)' : 'transparent' }}>
+                                    <td style={{ padding: '12px 16px' }}>
                                         <input
                                             type="checkbox"
                                             checked={selectedIds.includes(ac.id)}
@@ -118,74 +157,38 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                             onClick={e => e.stopPropagation()}
                                         />
                                     </td>
-                                    <td>
+                                    <td style={{ padding: '12px 16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#6366F1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px' }}>
+                                            <div style={{ width: '28px', height: '28px', borderRadius: '4px', background: 'var(--color-primary-muted)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '11px' }}>
                                                 {ac.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 600, fontSize: '14px' }}>{ac.name}</div>
-                                                <div style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>{ac.system_id}</div>
+                                                <div style={{ fontWeight: 500, fontSize: '13px', color: 'var(--color-text-primary)' }}>{ac.name}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{ac.system_id}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
-                                        <div style={{ fontWeight: 500, fontSize: '13px' }}>
-                                            {ac.city || 'Cidade não inf.'}
-                                        </div>
+                                    <td style={{ padding: '12px 16px' }}>
+                                        <div style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>{ac.city || '—'}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>UC {ac.uc}</div>
+                                    </td>
+                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-primary)' }}>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : '—'}</td>
+                                    <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: (ac.energy_today || 0) > 0 ? 'var(--color-trend-up)' : 'var(--color-text-muted)' }}>
+                                        {ac.energy_today ? `${ac.energy_today.toFixed(1)}` : '—'}
+                                    </td>
+                                    <td style={{ padding: '12px 16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>UC {ac.uc}</div>
-                                            <button
-                                                className="btn-icon"
-                                                style={{ padding: '2px', background: 'transparent', opacity: 0.5 }}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const newUC = prompt(`Editar UC para ${ac.name}:`, ac.uc);
-                                                    if (newUC && newUC !== ac.uc && (updateClient as any)) {
-                                                        (updateClient as any)(ac.id, { uc: newUC });
-                                                    }
-                                                }}
-                                                title="Editar UC"
-                                            >
-                                                <PencilLine size={12} />
-                                            </button>
+                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: ac.api_status === 'Normal' ? '#1E7E34' : ac.api_status === 'Atenção' ? '#D97706' : '#C0392B' }}></div>
+                                            <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{ac.api_status || 'Offline'}</span>
                                         </div>
                                     </td>
-                                    <td>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : 'API pendente'}</td>
-                                    <td style={{ fontWeight: 700, color: (ac.energy_today || 0) > 0 ? '#10B981' : 'var(--color-text-muted)' }}>
-                                        {ac.energy_today ? `${ac.energy_today.toFixed(1)} kWh` : '—'}
+                                    <td style={{ padding: '12px 16px' }}>
+                                        <span className={`badge badge-${ac.status === 'Completo' ? 'success' : ac.status === 'Divergente' ? 'warning' : 'danger'}`}>
+                                            {ac.latestBill ? ac.latestBill.competency : 'Pendente'}
+                                        </span>
                                     </td>
-                                    <td style={{ fontSize: '12px' }}>{ac.activation_date ? new Date(ac.activation_date).toLocaleDateString('pt-BR') : '—'}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: ac.api_status === 'Normal' ? '#10B981' : ac.api_status === 'Atenção' ? '#F59E0B' : '#DC2626' }}></div>
-                                            <span style={{ fontSize: '12px', fontWeight: 500 }}>{ac.api_status || 'Offline'}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span className={`badge badge-${ac.status === 'Completo' ? 'cold' : ac.status === 'Divergente' ? 'warm' : 'hot'}`} style={{ fontSize: '11px' }}>
-                                                {ac.latestBill ? ac.latestBill.competency : 'Vazio'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <button
-                                                className="btn btn-outline"
-                                                title="Sincronizar Agora"
-                                                style={{ padding: '4px 8px' }}
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    if (ac.platform === 'APsystems') syncSystemsFromAPI(ac.id, ac.system_id);
-                                                }}
-                                            >
-                                                <RefreshCw size={13} />
-                                            </button>
-                                            <button className="btn btn-outline" title="Exportar PDF" style={{ padding: '4px 8px' }} onClick={e => { e.stopPropagation(); handleExportPDF(ac); }}>
-                                                <Download size={13} />
-                                            </button>
-                                        </div>
+                                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                        <ChevronRight size={14} color="var(--color-text-muted)" />
                                     </td>
                                 </tr>
                             ))}
@@ -193,7 +196,16 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                     </table>
                 </div>
             </div>
-        </>
+
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Mostrando {filteredClients.length} sistemas</p>
+                {selectedIds.length > 0 && (
+                    <button style={{ border: 'none', background: 'transparent', color: 'var(--color-status-danger-text)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }} onClick={handleDeleteSelected}>
+                        Excluir {selectedIds.length} selecionados
+                    </button>
+                )}
+            </div>
+        </div>
     );
 };
 
