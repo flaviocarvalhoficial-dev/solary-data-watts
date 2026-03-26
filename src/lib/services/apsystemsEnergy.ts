@@ -129,63 +129,112 @@ export const APsystemsEnergyService = {
         }
     },
 
+    async syncSingleSystem(id: string, sid: string, tem_meter: boolean, force: boolean = false) {
+        console.log(`[SYNC INDIVIDUAL] Sincronizando sistema ${sid}${force ? ' (FORCE SYNC)' : ''}...`);
+
+        // 1. Verificar cache (Módulo 5: Não buscar dados repetidos no mesmo dia)
+        // Se force=true, ignoramos o cache.
+        if (!force) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const { data: current, error: checkError } = await supabase
+                .from('systems')
+                .select('last_sync')
+                .eq('id', id)
+                .single();
+
+            if (current?.last_sync && current.last_sync.startsWith(todayStr)) {
+                console.log(`[SYNC CACHE] Sistema ${sid} já atualizado hoje. Ignorando.`);
+                return { success: true, cached: true };
+            }
+        }
+
+        try {
+            const snapshot = await this.buildEnergySnapshot({ sid, tem_meter });
+
+            const { error: updateError } = await supabase
+                .from('systems')
+                .update({
+                    last_generation: snapshot.generation.lifetime,
+                    energy_today: snapshot.generation.today,
+                    meter_data: snapshot.meter as any,
+                    last_sync: new Date().toISOString()
+                })
+                .eq('id', id);
+
+            if (updateError) throw updateError;
+
+            console.log(`[SYNC SUCCESS] Sistema ${sid} atualizado.`);
+            return { success: true, snapshot };
+        } catch (err: any) {
+            const code = String(err.message || '').match(/\(([^)]+)\)/)?.[1] || '';
+            const isRateLimit = code === '2005' || err.message?.includes('2005');
+
+            console.error(`[SYNC ERROR] Sistema ${sid}:`, err.message);
+
+            if (isRateLimit) {
+                return { success: false, error: 'RATE_LIMIT', message: err.message };
+            }
+            return { success: false, error: 'FAILURE', message: err.message };
+        }
+    },
+
     /**
-     * Sincronização em Massa (Módulo 6)
-     * Orquestra o sync de todos os sistemas, persistindo no banco
+     * Sincronização em Lote Controlado (Módulo 6)
+     * Processa um pequeno grupo de sistemas (máximo 5) para evitar blocks.
      */
     async syncEnergyData() {
+        const MAX_BATCH_SIZE = 5;
         const startTime = Date.now();
-        console.log("[SYNC ORCHESTRATOR] Starting mass synchronization...");
+        const todayStr = new Date().toISOString().split('T')[0];
 
-        // 1. Buscar sistemas do banco (Fonte oficial)
+        console.log("[SYNC BATCH] Iniciando ciclo de sincronização controlada...");
+
+        // 1. Buscar apenas sistemas que ainda não foram sincronizados hoje e priorizar os mais antigos
         const { data: dbSystems, error: dbError } = await supabase
             .from('systems')
-            .select('id, sid, tem_meter');
+            .select('id, sid, tem_meter, last_sync')
+            .or(`last_sync.is.null,last_sync.lt.${todayStr}`)
+            .order('last_sync', { ascending: true, nullsFirst: true })
+            .limit(MAX_BATCH_SIZE);
 
-        if (dbError) throw new Error(`Erro ao ler sistemas: ${dbError.message}`);
+        if (dbError) throw new Error(`Erro ao buscar sistemas para lote: ${dbError.message}`);
 
         const result = {
             total_processados: dbSystems?.length || 0,
             sucesso: 0,
             falhas: 0,
+            aborted: false,
             tempo_execucao: 0
         };
 
         if (!dbSystems || dbSystems.length === 0) {
-            console.log("[SYNC ORCHESTRATOR] No systems found to sync.");
+            console.log("[SYNC BATCH] Nenhum sistema pendente para sincronizar hoje.");
             return result;
         }
 
-        // 2. Iterar com controle de fila
-        const tasks = dbSystems.map(async (sys) => {
-            try {
-                // buildEnergySnapshot já executa dentro da fila (via apsFetch)
-                const snapshot = await this.buildEnergySnapshot({ sid: sys.sid, tem_meter: sys.tem_meter });
+        // 2. Processar de forma sequencial (não em massa!) para respeitar limite e permitir interrupção
+        for (const sys of dbSystems) {
+            const syncRes = await this.syncSingleSystem(sys.id, sys.sid, sys.tem_meter === true);
 
-                // 3. Salvar resultados no banco (Update system)
-                const { error: updateError } = await supabase
-                    .from('systems')
-                    .update({
-                        last_generation: snapshot.generation.lifetime,
-                        energy_today: snapshot.generation.today,
-                        meter_data: snapshot.meter as any,
-                        last_sync: new Date().toISOString()
-                    })
-                    .eq('id', sys.id);
-
-                if (updateError) throw updateError;
+            if (syncRes.success) {
                 result.sucesso++;
-            } catch (err: any) {
-                console.error(`[SYNC ORCHESTRATOR] Falha no sistema ${sys.sid}:`, err.message);
+            } else {
                 result.falhas++;
+                // 3. Bloqueio Imediato (Módulo 4: Se 2005, parar loop)
+                if (syncRes.error === 'RATE_LIMIT') {
+                    console.error("[SYNC FATAL] Limite diário atingido (Erro 2005). Abortando lote.");
+                    result.aborted = true;
+                    break;
+                }
             }
-        });
 
-        // Esperar conclusão de todas os processos enfileirados
-        await Promise.all(tasks);
+            // Delays entre requisições já são tratados pela apsSystemsQueue (600ms+)
+            // Mas podemos adicionar um delay extra deliberado de 1 segundo conforme Módulo 2
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
 
         result.tempo_execucao = Math.ceil((Date.now() - startTime) / 1000);
-        console.log("[SYNC ORCHESTRATOR] Mass sync complete:", result);
+        console.log("[SYNC BATCH] Lote concluído:", result);
 
         return result;
     }

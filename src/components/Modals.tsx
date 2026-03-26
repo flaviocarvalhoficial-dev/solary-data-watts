@@ -27,6 +27,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
                     { label: 'Unidade Consumidora (UC)', field: 'uc', type: 'text', placeholder: 'Ex: 15690453' },
                     { label: 'System ID (APsystems)', field: 'system_id', type: 'text', placeholder: 'ID da plataforma' },
                     { label: 'Investimento (R$)', field: 'investment', type: 'number', placeholder: '0' },
+                    { label: 'Tarifa (R$/kWh)', field: 'current_kwh_value', type: 'number', placeholder: '0.95' },
                 ].map(({ label, field, type, placeholder }) => (
                     <div key={field}>
                         <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '4px' }}>{label}</label>

@@ -11,6 +11,9 @@ import { logAuditEvent } from './hooks/useAuditLog';
 import { parseFaturaPDF } from './utils/pdfParser';
 import { generateClientReport } from './utils/reportGenerator';
 
+import ExecutiveReport from './components/ExecutiveReport';
+import SettingsView from './components/SettingsView';
+
 // Components
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
@@ -19,24 +22,57 @@ import ClientDetailView from './components/ClientDetailView';
 import { NewClientModal, ImportModal, XLSImportModal } from './components/Modals';
 import { MappedSystem } from './utils/xlsImporter';
 
-import { ActiveClient, calcStats, clientStatus } from './utils/solarHelpers';
+import { ActiveClient, calculateFinalReport, clientStatus } from './utils/solarHelpers';
 import { getProvider } from './lib/providers';
 
 function App() {
     const { user, signOut } = useAuth();
     const { clients, loading: clientsLoading, refetch: refetchClients, create: createClient, update: updateClient, remove: removeClient } = useClients();
-    const { systems, refetch: refetchSystems, upsert: upsertSystem } = useSystems();
+    const { systems, refetch: refetchSystems, upsert: upsertSystem, update: updateSystem } = useSystems();
     const { bills, create: createBill, update: updateBill } = useBills();
+
+    const handleUpdateClientOrSystem = async (id: string, data: any) => {
+        try {
+            if (clients.some(c => c.id === id)) {
+                await updateClient(id, data);
+            } else {
+                // Mapear 'uc' para o campo 'account' na tabela systems (usado como fallback de UC)
+                const mappedData = { ...data };
+                if (mappedData.uc) {
+                    mappedData.account = mappedData.uc;
+                    delete mappedData.uc;
+                }
+                await updateSystem(id, mappedData);
+            }
+        } catch (err: any) {
+            alert(`Erro ao salvar alteração: ${err.message}`);
+        }
+    };
 
     const [activeTab, setActiveTab] = useState('Dashboard');
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [branding, setBranding] = useState({
+        company_name: 'Solary Data',
+        primary_color: '#6366F1',
+        secondary_color: '#10B981',
+        logo_url: '',
+        report_footer: 'Este relatório foi gerado automaticamente pelo sistema Solary Data.'
+    });
+
+    // Load Branding
+    React.useEffect(() => {
+        if (user) {
+            const saved = localStorage.getItem(`solary_branding_${user.id}`);
+            if (saved) setBranding(JSON.parse(saved));
+        }
+    }, [user]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('Todos');
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState<Partial<Bill>>({});
     const [showNewClientModal, setShowNewClientModal] = useState(false);
-    const [newClientForm, setNewClientForm] = useState({ name: '', uc: '', platform: 'APsystems', system_id: '', investment: 0 });
+    const [newClientForm, setNewClientForm] = useState({ name: '', uc: '', platform: 'APsystems', system_id: '', investment: 0, current_kwh_value: 0.95 });
     const [isSavingClient, setIsSavingClient] = useState(false);
     const [isSyncingAPI, setIsSyncingAPI] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
@@ -65,24 +101,53 @@ function App() {
         return getProvider('APsystems'); // Fallback
     }, [activeTab]);
 
-    const syncSystemsFromAPI = async () => {
+    const syncSystemsFromAPI = async (targetId?: string, targetSid?: string) => {
         setIsSyncingAPI(true);
         setSyncProgress(0);
-        console.log(`[SYNC STATUS] Iniciando sincronização profunda com ${currentProvider.name}...`);
+        console.log(`[SYNC STATUS] Iniciando sincronização controlada com ${currentProvider.name}...`);
 
         try {
-            // ESPECIAL: APsystems Refatorado (Módulo 6)
+            // MODO NOVO: APsystems Refatorado (Módulo 6: Batch 5 ou Individual)
             if (activeTab === 'APsystems') {
-                const result = await APsystemsEnergyService.syncEnergyData();
-                await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, { count: result.total_processados, platform: 'APsystems' });
-                alert(`Sincronização APsystems concluída!\nSucesso: ${result.sucesso}\nFalhas: ${result.falhas}\nTempo: ${result.tempo_execucao}s`);
+                if (targetId && targetSid) {
+                    // Modo Individual (Forçado pelo clique - bypass cache)
+                    const currentSystem = systems.find(s => s.sid === targetSid);
+                    const res = await APsystemsEnergyService.syncSingleSystem(targetId, targetSid, currentSystem?.tem_meter === true, true);
+
+                    if (res.success) {
+                        await logAuditEvent('SYSTEM_SYNC_INDIVIDUAL', targetId, null, { sid: targetSid, platform: 'APsystems' });
+                        alert(`Sincronização do sistema ${targetSid} concluída!`);
+                    } else {
+                        alert(`Erro ao sincronizar ${targetSid}: ${res.message}`);
+                    }
+                } else {
+                    // Modo Lote (Módulo 6: Máximo 5 por vez)
+                    const result = await APsystemsEnergyService.syncEnergyData();
+
+                    await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, {
+                        count: result.sucesso,
+                        platform: 'APsystems',
+                        total: result.total_processados,
+                        aborted: result.aborted
+                    });
+
+                    if (result.aborted) {
+                        alert(`Alerta: Limite excedido (Erro 2005).\nO sistema parou para evitar bloqueios.\nSistemas atualizados agora: ${result.sucesso}`);
+                    } else if (result.total_processados === 0) {
+                        alert(`Todos os sistemas já foram sincronizados hoje.\nNenhuma nova tentativa necessária agora.`);
+                    } else {
+                        alert(`Lote concluído com sucesso (Máx 5).\nSistemas atualizados: ${result.sucesso}\nFalhas: ${result.falhas}\nTempo: ${result.tempo_execucao}s`);
+                    }
+                }
+
                 refetchSystems();
                 setIsSyncingAPI(false);
                 return;
             }
 
-            // OUTRAS PLATAFORMAS (Legado mantido por enquanto)
+            // OUTRAS PLATAFORMAS (Legado mantido com controle básico)
             const systemsResult = await currentProvider.importSystems();
+            // ... resto do código legado se necessário, mas APsystems é o foco.
 
             if (systemsResult.length === 0) {
                 console.warn(`[Deep Sync] Nenhum sistema encontrado para ${currentProvider.name}.`);
@@ -260,7 +325,7 @@ function App() {
             return {
                 id: s.id,
                 name: s.cliente,
-                uc: 'PENDENTE', // Systems from XLS don't have UC yet
+                uc: s.account || 'PENDENTE',
                 platform: 'APsystems',
                 system_id: s.sid,
                 city: s.cidade || '—',
@@ -296,39 +361,110 @@ function App() {
             return matchSearch && matchStatus;
         }), [enrichedClients, searchTerm, statusFilter, activeTab]);
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetClientId?: string) => {
         if (!e.target.files?.length) return;
         setIsUploading(true);
-        for (const file of Array.from(e.target.files)) {
+        const files = Array.from(e.target.files);
+
+        for (const file of files) {
             try {
+                // 1. Parse PDF para obter dados (Competência, UC, etc)
                 const parsed = await parseFaturaPDF(file);
-                const client = clients.find(c => c.uc === parsed.uc);
-                if (!client) { alert(`UC ${parsed.uc} não encontrada.`); continue; }
+
+                let client: any = null;
+
+                if (targetClientId) {
+                    // MODO INDIVIDUAL: Forçamos o cliente selecionado
+                    client = clients.find(c => c.id === targetClientId) || systems.find(s => s.id === targetClientId);
+                } else {
+                    // MODO LOTE: Busca automática por UC (Fuzzy Match)
+                    const normalizeUC = (val: string) => val.replace(/\D/g, '').replace(/^0+/, '');
+                    const targetUC = normalizeUC(parsed.uc);
+
+                    client = clients.find(c => {
+                        const dbUC = normalizeUC(c.uc);
+                        return dbUC === targetUC || dbUC.endsWith(targetUC) || targetUC.endsWith(dbUC);
+                    });
+
+                    if (!client) {
+                        // Se não achar no clients, tenta no discovery (systems table)
+                        client = systems.find(s => {
+                            const dbUC = normalizeUC(s.account || '');
+                            return dbUC === targetUC || (dbUC.length > 5 && (dbUC.endsWith(targetUC) || targetUC.endsWith(dbUC)));
+                        });
+                    }
+                }
+
+                if (!client) {
+                    alert(`UC ${parsed.uc} encontrada no PDF (${file.name}), mas não há nenhum cliente ou sistema cadastrado com esse número.\n\nVerifique o cadastro.`);
+                    continue;
+                }
+
+                // 1.5 AUTO-IMPORT: Se o "cliente" for na verdade apenas um "sistema" do XLS (Discovery), importamos agora
+                const isAlreadyRegistered = clients.some(c => c.id === client.id);
+                let finalClientId = client.id;
+
+                if (!isAlreadyRegistered) {
+                    try {
+                        const newClient = await createClient({
+                            name: client.cliente || `Usina ${client.sid}`,
+                            uc: parsed.uc || client.account || 'PENDENTE',
+                            platform: 'APsystems',
+                            system_id: client.sid,
+                            city: client.cidade || '—',
+                            investment: 0
+                        });
+                        finalClientId = newClient.id;
+                        if (selectedClientId === client.id) {
+                            setSelectedClientId(newClient.id);
+                        }
+                        await logAuditEvent('SYSTEM_IMPORT', newClient.id, null, { reason: 'PDF_UPLOAD_AUTO_LINK', original_sys_id: client.id });
+                    } catch (importErr: any) {
+                        alert(`Erro auto-import: ${importErr.message}`);
+                        continue;
+                    }
+                }
+
+                // 2. Subir para Supabase Storage
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${finalClientId}_${parsed.competency.replace('/', '_')}_${Date.now()}.${fileExt}`;
+                const filePath = `${user?.id}/${fileName}`;
+                const { data: uploadData } = await supabase.storage.from('bills').upload(filePath, file);
+
+                // 3. Criar registro no banco
                 await createBill({
-                    client_id: client.id, competency: parsed.competency,
-                    consumption: parsed.consumption, injected_energy: parsed.injectedEnergy,
-                    total_value: parsed.totalValue, street_lighting: parsed.streetLighting,
+                    client_id: finalClientId, // USAR O ID DO CLIENTE FINAL (SALVO NO BANCO)
+                    competency: parsed.competency,
+                    consumption: parsed.gridConsumption,
+                    compensated_energy: parsed.compensatedEnergy,
+                    credit_balance: parsed.creditBalance,
+                    injected_energy: parsed.injectedEnergy,
+                    total_value: parsed.totalValue,
+                    street_lighting: parsed.streetLighting,
+                    tariff_kwh: parsed.tariffKwh,
                     confidence: parsed.confidence,
+                    storage_path: uploadData?.path || null
                 });
-                await logAuditEvent('PDF_UPLOAD', client.id, null, { competency: parsed.competency });
-            } catch (err: any) { alert(`Erro: ${err.message}`); }
+
+                await logAuditEvent('PDF_UPLOAD', finalClientId, null, { competency: parsed.competency, mode: targetClientId ? 'Individual' : 'Auto' });
+            } catch (err: any) {
+                alert(`Erro ao processar ${file.name}: ${err.message}`);
+            }
         }
         setIsUploading(false);
+        refetchClients(); // Para ver o status mudar para Completo/Divergente
     };
 
     const handleExportPDF = async (ac: ActiveClient) => {
         const bill = ac.latestBill;
         if (!bill) return alert('Vincule uma fatura.');
-        const s = calcStats(ac.generation, bill, ac.investment ?? 0);
-        await generateClientReport('report-content', {
-            clientName: ac.name, uc: ac.uc, competency: bill.competency,
-            generation: `${ac.generation.toFixed(0)} kWh`,
-            economy: `R$ ${s.economyValue.toFixed(2)}`,
-            reduction: `${s.reductionPercent}%`,
-            payback: `${s.payback} anos`,
-            injected: `${bill.injected_energy} kWh`,
-            totalValue: `R$ ${bill.total_value.toFixed(2)}`,
-        });
+
+        const reportData = calculateFinalReport(ac, bill, ac.generation);
+
+        // Pequeno delay p/ garantir renderização do template oculto
+        await new Promise(r => setTimeout(r, 100));
+
+        await generateClientReport('executive-report-template', reportData);
     };
 
     const handleBatchExport = async () => {
@@ -338,17 +474,17 @@ function App() {
         const zip = new JSZip();
         for (const ac of valid) {
             setSelectedClientId(ac.id);
-            await new Promise(r => setTimeout(r, 700));
             const bill = ac.latestBill!;
-            const s = calcStats(ac.generation, bill, ac.investment ?? 0);
-            const blob = await generateClientReport('report-content', {
-                clientName: ac.name, uc: ac.uc, competency: bill.competency,
-                generation: `${ac.generation.toFixed(0)} kWh`,
-                economy: `R$ ${s.economyValue.toFixed(2)}`,
-                reduction: `${s.reductionPercent}%`, payback: `${s.payback} anos`,
-                injected: `${bill.injected_energy} kWh`, totalValue: `R$ ${bill.total_value.toFixed(2)}`,
-            }, false);
-            if (blob) zip.file(`relatorio_${ac.name.replace(/\s/g, '_')}.pdf`, blob);
+
+            // Sync rendering delay
+            await new Promise(r => setTimeout(r, 200));
+
+            const reportData = calculateFinalReport(ac, bill, ac.generation);
+            const blob = await generateClientReport('executive-report-template', reportData, false);
+
+            if (blob) {
+                zip.file(`relatorio_${ac.name.replace(/\s/g, '_')}_${bill.competency.replace(/\//g, '-')}.pdf`, blob);
+            }
         }
         const zipBlob = await zip.generateAsync({ type: 'blob' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(zipBlob);
@@ -361,10 +497,24 @@ function App() {
         if (!selectedClientId) return;
         const ac = enrichedClients.find(c => c.id === selectedClientId)!;
         const existingBill = ac.latestBill;
+
+        // Extrair geração se foi alterada manualmente (Cáculo Manual)
+        const { generation, ...billData } = editData as any;
+
         try {
-            if (existingBill?.id) await updateBill(existingBill.id, editData);
-            else await createBill({ ...editData as any, client_id: selectedClientId });
+            // 1. Salvar Fatura
+            if (existingBill?.id) await updateBill(existingBill.id, billData);
+            else await createBill({ ...billData, client_id: selectedClientId });
+
+            // 2. Se a geração foi alterada manualmente, atualizar o cliente (Modo Fallback/Manual)
+            if (generation !== undefined && generation !== ac.generation) {
+                await updateClient(selectedClientId, { last_generation: generation });
+                await logAuditEvent('MANUAL_EDIT', selectedClientId, { oldGen: ac.generation }, { newGen: generation });
+            }
+
             setIsEditing(false);
+            refetchClients();
+            alert("Dados salvos com sucesso!");
         } catch (err: any) { alert(`Erro: ${err.message}`); }
     };
 
@@ -396,7 +546,24 @@ function App() {
 
     const selectedAC = enrichedClients.find(c => c.id === selectedClientId) ?? null;
     const selectedBill = selectedAC?.latestBill ?? null;
-    const selectedStats = selectedAC && selectedBill ? calcStats(selectedAC.generation, selectedBill, (selectedAC as any).investment ?? 0) : null;
+    const selectedReport = selectedAC && selectedBill ? calculateFinalReport(selectedAC, selectedBill, selectedAC.generation) : null;
+
+    const triggerStartEdit = () => {
+        if (!selectedClientId) return;
+        setEditData(selectedBill ? { ...selectedBill } : {
+            client_id: selectedClientId,
+            competency: (selectedBill as any)?.competency || 'MAR/2026',
+            total_value: (selectedBill as any)?.total_value || 0,
+            consumption: (selectedBill as any)?.consumption || 0,
+            compensated_energy: (selectedBill as any)?.compensated_energy || 0,
+            credit_balance: (selectedBill as any)?.credit_balance || 0,
+            injected_energy: (selectedBill as any)?.injected_energy || 0,
+            tariff_kwh: (selectedBill as any)?.tariff_kwh || 0.95,
+            street_lighting: (selectedBill as any)?.street_lighting || 0,
+            confidence: 0.5
+        });
+        setIsEditing(true);
+    };
 
     return (
         <div className="app-shell">
@@ -415,14 +582,16 @@ function App() {
                 onImportComplete={handleXLSImportComplete}
             />
 
+            {/* Hidden Executive Report Template for PDF Capture */}
+            <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', pointerEvents: 'none' }}>
+                {selectedReport && <ExecutiveReport data={selectedReport} branding={branding} />}
+            </div>
+
             <Sidebar
                 user={user as any} activeTab={activeTab} setActiveTab={setActiveTab}
                 selectedClientId={selectedClientId} setSelectedClientId={setSelectedClientId}
                 clientsCount={clients.length} incompleteCount={enrichedClients.filter(c => c.status === 'Incompleto').length}
-                signOut={signOut} handleExportPDF={handleExportPDF} handleStartEdit={() => {
-                    setEditData(selectedBill ? { ...selectedBill } : { client_id: selectedClientId!, competency: 'MAR/2026', total_value: 0, consumption: 0, injected_energy: 0, street_lighting: 0, confidence: 0.5 });
-                    setIsEditing(true);
-                }}
+                signOut={signOut} handleExportPDF={handleExportPDF} handleStartEdit={triggerStartEdit}
                 removeClient={removeClient}
                 selectedAC={selectedAC}
             />
@@ -453,16 +622,21 @@ function App() {
                 <div className="content-area">
                     {selectedAC ? (
                         <ClientDetailView
-                            selectedAC={selectedAC} selectedBill={selectedBill} selectedStats={selectedStats}
+                            selectedAC={selectedAC} selectedBill={selectedBill} selectedStats={selectedReport}
                             isEditing={isEditing} editData={editData} setEditData={setEditData}
                             handleSaveEdit={handleSaveEdit} setIsEditing={setIsEditing}
-                            handleStartEdit={() => setIsEditing(true)}
+                            handleStartEdit={triggerStartEdit}
                             setSelectedClientId={setSelectedClientId}
                             handleExportPDF={handleExportPDF}
-                            syncSystemsFromAPI={syncSystemsFromAPI}
+                            syncSystemsFromAPI={() => syncSystemsFromAPI(selectedAC.id, selectedAC.system_id)}
                             isSyncingAPI={isSyncingAPI}
                             updateClientName={(newName) => updateClient(selectedAC.id, { name: newName })}
+                            handleFileUpload={(e) => handleFileUpload(e, selectedAC.id)}
+                            isUploading={isUploading}
+                            branding={branding}
                         />
+                    ) : activeTab === 'Settings' ? (
+                        <SettingsView user={user} branding={branding} setBranding={setBranding} />
                     ) : activeTab === 'Dashboard' ? (
                         <DashboardView
                             clients={clients} enrichedClients={enrichedClients}
@@ -470,12 +644,12 @@ function App() {
                             totalEconomy={enrichedClients.reduce((a, c) => {
                                 const bill = c.latestBill;
                                 if (!bill) return a;
-                                return a + calcStats(c.generation, bill, (c as any).investment ?? 0).economyValue;
+                                return a + calculateFinalReport(c, bill, c.generation).resultado.economia_mensal;
                             }, 0)}
                             incompleteCount={enrichedClients.filter(c => c.status === 'Incompleto').length}
                             handleBatchExport={handleBatchExport} isUploading={isUploading}
                             setSelectedClientId={setSelectedClientId} setActiveTab={setActiveTab}
-                            syncSystemsFromAPI={syncSystemsFromAPI}
+                            syncSystemsFromAPI={() => syncSystemsFromAPI()}
                             isSyncingAPI={isSyncingAPI}
                             syncProgress={syncProgress}
                             syncTotal={syncTotal}
@@ -493,7 +667,7 @@ function App() {
                     ) : (
                         <ClientsListView
                             statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-                            isSyncingAPI={isSyncingAPI} syncSystemsFromAPI={syncSystemsFromAPI}
+                            isSyncingAPI={isSyncingAPI} syncSystemsFromAPI={(id, sid) => syncSystemsFromAPI(id, sid)}
                             handleFetchSystems={handleFetchSystems} isImporting={isImporting}
                             handleBatchExport={handleBatchExport} isUploading={isUploading}
                             setShowNewClientModal={setShowNewClientModal}
@@ -506,6 +680,7 @@ function App() {
                             handleExportPDF={handleExportPDF}
                             currentPlatform={['APsystems', 'Sungrow', 'GoodWe'].includes(activeTab) ? (activeTab as any) : undefined}
                             setShowXLSImportModal={setShowXLSImportModal}
+                            updateClient={handleUpdateClientOrSystem}
                         />
                     )}
                 </div>

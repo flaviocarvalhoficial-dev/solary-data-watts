@@ -1,12 +1,11 @@
-import React from 'react';
-import { RefreshCw, Zap, FileArchive, Plus, Download } from 'lucide-react';
+import { RefreshCw, Zap, FileArchive, Plus, Download, PencilLine } from 'lucide-react';
 import { ActiveClient } from '../utils/solarHelpers';
 
 interface ClientsListViewProps {
     statusFilter: string;
     setStatusFilter: (filter: string) => void;
     isSyncingAPI: boolean;
-    syncSystemsFromAPI: () => void;
+    syncSystemsFromAPI: (targetId?: string, targetSid?: string) => void;
     handleFetchSystems: () => void;
     isImporting: boolean;
     handleBatchExport: () => void;
@@ -21,6 +20,7 @@ interface ClientsListViewProps {
     handleExportPDF: (ac: ActiveClient) => void;
     currentPlatform?: string;
     setShowXLSImportModal?: (show: boolean) => void;
+    updateClient?: (id: string, data: any) => void;
 }
 
 const ClientsListView: React.FC<ClientsListViewProps> = ({
@@ -41,7 +41,8 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
     setSelectedClientId,
     handleExportPDF,
     currentPlatform,
-    setShowXLSImportModal
+    setShowXLSImportModal,
+    updateClient
 }) => {
     const allSelected = filteredClients.length > 0 && selectedIds.length === filteredClients.length;
 
@@ -74,8 +75,8 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                     <button className="btn btn-outline" style={{ color: '#9CA3AF' }} onClick={handleClearAll}>
                         Limpar Tudo
                     </button>
-                    <button className="btn btn-outline" onClick={syncSystemsFromAPI} disabled={isSyncingAPI}>
-                        <RefreshCw size={15} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando...' : `Sincronizar ${currentPlatform || 'Todos'}`}
+                    <button className="btn btn-outline" onClick={() => syncSystemsFromAPI()} disabled={isSyncingAPI}>
+                        <RefreshCw size={15} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando...' : 'Atualizar dados energéticos'}
                     </button>
                     <button className="btn btn-outline" onClick={handleFetchSystems} disabled={isImporting}>
                         <Zap size={15} color="#F59E0B" /> {isImporting ? 'Buscando...' : `Importar ${currentPlatform || 'API'}`}
@@ -132,7 +133,23 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                         <div style={{ fontWeight: 500, fontSize: '13px' }}>
                                             {ac.city || 'Cidade não inf.'}
                                         </div>
-                                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>UC {ac.uc}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>UC {ac.uc}</div>
+                                            <button
+                                                className="btn-icon"
+                                                style={{ padding: '2px', background: 'transparent', opacity: 0.5 }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newUC = prompt(`Editar UC para ${ac.name}:`, ac.uc);
+                                                    if (newUC && newUC !== ac.uc && (updateClient as any)) {
+                                                        (updateClient as any)(ac.id, { uc: newUC });
+                                                    }
+                                                }}
+                                                title="Editar UC"
+                                            >
+                                                <PencilLine size={12} />
+                                            </button>
+                                        </div>
                                     </td>
                                     <td>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : 'API pendente'}</td>
                                     <td style={{ fontWeight: 700, color: (ac.energy_today || 0) > 0 ? '#10B981' : 'var(--color-text-muted)' }}>
@@ -153,9 +170,22 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                         </div>
                                     </td>
                                     <td>
-                                        <button className="btn btn-outline" title="Exportar PDF" style={{ padding: '4px 8px' }} onClick={e => { e.stopPropagation(); handleExportPDF(ac); }}>
-                                            <Download size={13} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button
+                                                className="btn btn-outline"
+                                                title="Sincronizar Agora"
+                                                style={{ padding: '4px 8px' }}
+                                                onClick={e => {
+                                                    e.stopPropagation();
+                                                    if (ac.platform === 'APsystems') syncSystemsFromAPI(ac.id, ac.system_id);
+                                                }}
+                                            >
+                                                <RefreshCw size={13} />
+                                            </button>
+                                            <button className="btn btn-outline" title="Exportar PDF" style={{ padding: '4px 8px' }} onClick={e => { e.stopPropagation(); handleExportPDF(ac); }}>
+                                                <Download size={13} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

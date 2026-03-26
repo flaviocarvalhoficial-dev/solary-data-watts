@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-export type AuditEventType = 'MANUAL_EDIT' | 'FALLBACK_APPLIED' | 'PDF_UPLOAD' | 'REPORT_GENERATED' | 'API_SYNC' | 'SYSTEM_SYNC_BATCH';
+export type AuditEventType = 'MANUAL_EDIT' | 'FALLBACK_APPLIED' | 'PDF_UPLOAD' | 'REPORT_GENERATED' | 'API_SYNC' | 'SYSTEM_SYNC_BATCH' | 'SYSTEM_SYNC_INDIVIDUAL' | 'SYSTEM_IMPORT';
 
 export async function logAuditEvent(
     event_type: AuditEventType,

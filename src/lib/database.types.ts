@@ -45,6 +45,7 @@ export interface Database {
                     created_at: string | null
                     updated_at: string | null
                     last_generation: number | null
+                    current_kwh_value: number | null
                     city: string | null
                     api_status: string | null
                     ecu_id: string | null
@@ -73,6 +74,7 @@ export interface Database {
                     activation_date?: string | null
                     consumption_profile?: string | null
                     last_generation?: number | null
+                    current_kwh_value?: number | null
                     city?: string | null
                     api_status?: string | null
                     ecu_id?: string | null
@@ -101,6 +103,7 @@ export interface Database {
                     consumption_profile?: string | null
                     updated_at?: string | null
                     last_generation?: number | null
+                    current_kwh_value?: number | null
                     city?: string | null
                     api_status?: string | null
                     ecu_id?: string | null
@@ -128,6 +131,9 @@ export interface Database {
                     consumption: number
                     injected_energy: number
                     total_value: number
+                    compensated_energy: number
+                    credit_balance: number
+                    tariff_kwh: number
                     street_lighting: number | null
                     confidence: number | null
                     storage_path: string | null
@@ -139,6 +145,9 @@ export interface Database {
                     consumption: number
                     injected_energy: number
                     total_value: number
+                    compensated_energy?: number
+                    credit_balance?: number
+                    tariff_kwh?: number
                     street_lighting?: number | null
                     confidence?: number | null
                     storage_path?: string | null
@@ -148,6 +157,9 @@ export interface Database {
                     consumption?: number
                     injected_energy?: number
                     total_value?: number
+                    compensated_energy?: number
+                    credit_balance?: number
+                    tariff_kwh?: number
                     street_lighting?: number | null
                     confidence?: number | null
                     storage_path?: string | null

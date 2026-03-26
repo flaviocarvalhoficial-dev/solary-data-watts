@@ -1,6 +1,6 @@
 import React from 'react';
 import { Users, Zap, TrendingUp, AlertCircle, FileArchive, ExternalLink, RefreshCw } from 'lucide-react';
-import { ActiveClient } from '../App';
+import { ActiveClient } from '../utils/solarHelpers';
 
 interface DashboardViewProps {
     clients: any[];
@@ -12,7 +12,7 @@ interface DashboardViewProps {
     isUploading: boolean;
     setSelectedClientId: (id: string | null) => void;
     setActiveTab: (tab: string) => void;
-    syncSystemsFromAPI: () => void;
+    syncSystemsFromAPI: (id?: string, sid?: string) => void;
     isSyncingAPI: boolean;
     syncProgress: number;
     syncTotal: number;
@@ -59,7 +59,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     <h3 style={{ fontSize: '15px', fontWeight: 600 }}>Monitoramento de Operação (Real-time)</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Última atualização: Hoje, Agora</span>
-                        <button className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '11px', height: 'auto' }} onClick={syncSystemsFromAPI} disabled={isSyncingAPI}>
+                        <button className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '11px', height: 'auto' }} onClick={() => syncSystemsFromAPI()} disabled={isSyncingAPI}>
                             <RefreshCw size={12} className={isSyncingAPI ? 'spin' : ''} style={{ marginRight: '6px' }} /> Atualizar Agora
                         </button>
                     </div>
@@ -130,6 +130,17 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                 <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>UC {ac.uc}</div>
                             </div>
                             <span className={`badge badge-${ac.status === 'Completo' ? 'cold' : ac.status === 'Divergente' ? 'warm' : 'hot'}`}>{ac.status}</span>
+                            <button
+                                className="btn-icon"
+                                style={{ color: 'var(--color-primary)', background: 'transparent' }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    syncSystemsFromAPI(ac.id, ac.system_id);
+                                }}
+                                title="Atualizar agora"
+                            >
+                                <RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} />
+                            </button>
                             <ExternalLink size={13} color="var(--color-primary)" />
                         </div>
                     ))}

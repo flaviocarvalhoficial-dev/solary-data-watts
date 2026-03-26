@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Sun, LayoutDashboard, Users, FileText, ChevronLeft,
-    Download, Edit3, X, LogOut
+    Download, Edit3, X, LogOut, Settings as SettingsIcon
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
@@ -46,54 +46,63 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <h1 style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '-0.02em' }}>Solary Data</h1>
             </div>
 
-            <div className="text-nav-label-group">{selectedClientId ? 'Navegação' : 'Menu'}</div>
+            <div className="text-nav-label-group">Menu</div>
             <nav style={{ flex: 1 }}>
-                {selectedClientId ? (
-                    <a href="#" className="nav-item" onClick={e => { e.preventDefault(); setSelectedClientId(null); }}>
-                        <ChevronLeft size={18} /><span className="text-nav-item">Voltar</span>
+                {[
+                    { tab: 'Dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+                ].map(({ tab, icon, label }) => (
+                    <a key={tab} href="#" className={`nav-item ${activeTab === tab && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab(tab); setSelectedClientId(null); }}>
+                        {icon}
+                        <span className="text-nav-item">{label}</span>
                     </a>
-                ) : (
-                    <>
-                        {[
-                            { tab: 'Dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-                        ].map(({ tab, icon, label }) => (
-                            <a key={tab} href="#" className={`nav-item ${activeTab === tab ? 'active' : ''}`}
-                                onClick={e => { e.preventDefault(); setActiveTab(tab); }}>
-                                {icon}
-                                <span className="text-nav-item">{label}</span>
-                            </a>
-                        ))}
+                ))}
 
-                        <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Integradores</div>
-                        {[
-                            { tab: 'APsystems', icon: <Sun size={18} />, label: 'APsystems' },
-                            { tab: 'Sungrow', icon: <Sun size={18} />, label: 'Sungrow' },
-                            { tab: 'GoodWe', icon: <Sun size={18} />, label: 'GoodWe' },
-                        ].map(({ tab, icon, label }) => (
-                            <a key={tab} href="#" className={`nav-item ${activeTab === tab ? 'active' : ''}`}
-                                onClick={e => { e.preventDefault(); setActiveTab(tab); }}>
-                                {icon}
-                                <span className="text-nav-item">{label}</span>
-                            </a>
-                        ))}
+                <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Integradores</div>
+                {[
+                    { tab: 'APsystems', icon: <Sun size={18} />, label: 'APsystems' },
+                    { tab: 'Sungrow', icon: <Sun size={18} />, label: 'Sungrow' },
+                    { tab: 'GoodWe', icon: <Sun size={18} />, label: 'GoodWe' },
+                ].map(({ tab, icon, label }) => (
+                    <a key={tab} href="#" className={`nav-item ${activeTab === tab && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab(tab); setSelectedClientId(null); }}>
+                        {icon}
+                        <span className="text-nav-item">{label}</span>
+                    </a>
+                ))}
 
-                        <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Operacional</div>
-                        {[
-                            { tab: 'Bills', icon: <FileText size={18} />, label: 'Faturas' },
-                        ].map(({ tab, icon, label }) => (
-                            <a key={tab} href="#" className={`nav-item ${activeTab === tab ? 'active' : ''}`}
-                                onClick={e => { e.preventDefault(); setActiveTab(tab); }}>
-                                {icon}
-                                <span className="text-nav-item">{label}</span>
-                            </a>
-                        ))}
-                    </>
-                )}
+                <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Operacional</div>
+                {[
+                    { tab: 'Bills', icon: <FileText size={18} />, label: 'Faturas' },
+                ].map(({ tab, icon, label }) => (
+                    <a key={tab} href="#" className={`nav-item ${activeTab === tab && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab(tab); setSelectedClientId(null); }}>
+                        {icon}
+                        <span className="text-nav-item">{label}</span>
+                    </a>
+                ))}
+
+                <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Sistema</div>
+                {[
+                    { tab: 'Settings', icon: <SettingsIcon size={18} />, label: 'Configurações' },
+                ].map(({ tab, icon, label }) => (
+                    <a key={tab} href="#" className={`nav-item ${activeTab === tab && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab(tab); setSelectedClientId(null); }}>
+                        {icon}
+                        <span className="text-nav-item">{label}</span>
+                    </a>
+                ))}
             </nav>
 
             {selectedClientId && (
                 <>
-                    <div className="text-nav-label-group" style={{ marginTop: '24px' }}>Relatório</div>
+                    <div className="text-nav-label-group" style={{ marginTop: '24px' }}>Sistema Selecionado</div>
+                    <nav>
+                        <a href="#" className="nav-item active" onClick={e => { e.preventDefault(); setSelectedClientId(null); }}>
+                            <ChevronLeft size={18} /><span className="text-nav-item">Voltar p/ Lista</span>
+                        </a>
+                    </nav>
+                    <div className="text-nav-label-group" style={{ marginTop: '16px' }}>Relatório</div>
                     <nav>
                         <button className="nav-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer' }}
                             onClick={() => selectedAC && handleExportPDF(selectedAC)}>
@@ -102,10 +111,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <button className="nav-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer' }} onClick={handleStartEdit}>
                             <Edit3 size={18} /><span className="text-nav-item">Editar Fatura</span>
                         </button>
-                        <button className="nav-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: '#DC2626' }}
-                            onClick={async () => { if (confirm('Remover este sistema?')) { await removeClient(selectedClientId); setSelectedClientId(null); } }}>
-                            <X size={18} /><span className="text-nav-item">Excluir Sistema</span>
-                        </button>
+                        {selectedClientId && (
+                            <button className="nav-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: '#DC2626' }}
+                                onClick={async () => { if (confirm('Remover este sistema?')) { await removeClient(selectedClientId); setSelectedClientId(null); } }}>
+                                <X size={18} /><span className="text-nav-item">Excluir Sistema</span>
+                            </button>
+                        )}
                     </nav>
                 </>
             )}

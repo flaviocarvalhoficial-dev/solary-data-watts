@@ -1,19 +1,9 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-export interface ReportData {
-    clientName: string;
-    uc: string;
-    competency: string;
-    generation: string;
-    economy: string;
-    reduction: string;
-    payback: string;
-    injected: string;
-    totalValue: string;
-}
+import { FinalReportObject } from './solarHelpers';
 
-export const generateClientReport = async (elementId: string, data: ReportData, save = true) => {
+export const generateClientReport = async (elementId: string, data: FinalReportObject, save = true) => {
     const element = document.getElementById(elementId);
     if (!element) return null;
 
@@ -29,21 +19,12 @@ export const generateClientReport = async (elementId: string, data: ReportData, 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    pdf.setFontSize(22);
-    pdf.setTextColor(99, 102, 241);
-    pdf.text('SOLARY DATA', 10, 20);
-    pdf.setFontSize(10);
-    pdf.setTextColor(107, 114, 128);
-    pdf.text(`RELATÓRIO MENSAL - COMPETÊNCIA ${data.competency}`, 10, 28);
-
-    pdf.addImage(imgData, 'PNG', 0, 35, pdfWidth, pdfHeight);
-
-    pdf.setFontSize(8);
-    pdf.text('Este relatório foi gerado automaticamente pelo sistema Solary Data.', 10, 285);
-    pdf.text(`Página 1 de 1`, pdfWidth - 25, 285);
+    // A4 height is 297mm. If report is longer, it will scale down or we could split.
+    // For now, we capture as one high-qual block.
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(297, pdfHeight));
 
     if (save) {
-        pdf.save(`relatorio_${data.clientName.replace(/\s/g, '_')}_${data.competency.replace(/\//g, '-')}.pdf`);
+        pdf.save(`relatorio_${data.cliente.replace(/\s/g, '_')}_${data.competencia.replace(/\//g, '-')}.pdf`);
     }
 
     return pdf.output('blob');

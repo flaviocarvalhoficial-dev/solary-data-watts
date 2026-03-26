@@ -47,6 +47,19 @@ export function useSystems() {
         return data;
     };
 
+    const update = async (id: string, input: SystemUpdate) => {
+        const { data, error: err } = await supabase
+            .from('systems')
+            .update({ ...input, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (err) throw new Error(err.message);
+        setSystems(prev => prev.map(s => s.id === id ? data : s));
+        return data;
+    };
+
     const remove = async (id: string) => {
         const { error: err } = await supabase
             .from('systems')
@@ -57,5 +70,5 @@ export function useSystems() {
         setSystems(prev => prev.filter(s => s.id !== id));
     };
 
-    return { systems, setSystems, loading, error, refetch: fetch, upsert, remove };
+    return { systems, setSystems, loading, error, refetch: fetch, upsert, update, remove };
 }
