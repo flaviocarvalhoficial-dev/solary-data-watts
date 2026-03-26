@@ -99,7 +99,7 @@ export function useBillUpload({ clients, systems, createClient, updateClient, cr
                     }
 
                     if (!client) {
-                        console.warn(`[BILL UPLOAD] UC ${parsed.uc} não encontrada automática. Guardando para manual.`);
+                        console.warn(`[BILL UPLOAD] Conta Contrato ${parsed.uc} não encontrada automática. Guardando para manual.`);
                         if (!firstUnlinked) firstUnlinked = { parsed, file };
                         continue;
                     }

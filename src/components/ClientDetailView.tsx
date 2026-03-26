@@ -83,7 +83,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         </span>
                     </div>
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', marginLeft: '38px', marginTop: '4px' }}>
-                        UC {selectedAC.uc} · <span style={{ color: 'var(--color-primary)', fontWeight: 500 }}>{selectedAC.platform}</span> · ID {selectedAC.system_id}
+                        Conta {selectedAC.uc} · <span style={{ color: 'var(--color-primary)', fontWeight: 500 }}>{selectedAC.platform}</span> · ID {selectedAC.system_id}
                         {selectedAC.updated_at && (
                             <> · <span title="Última atualização de dados" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                 <RefreshCw size={12} style={{ opacity: 0.6 }} /> {new Date(selectedAC.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -124,9 +124,20 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                 <div className="card" data-tooltip="Consolidação dos dados de geração (API) e consumo (Fatura) para esta competência." style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Status Operacional</h3>
-                        <span className={`badge ${selectedStats ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                            {selectedStats ? 'Dados Sincronizados' : 'Aguardando Sinc'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {selectedBill && (
+                                <button
+                                    onClick={() => { if (confirm('Limpar dados desta competência?')) handleResetData(selectedAC.id); }}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-status-danger-text)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}
+                                    title="Resetar Dados"
+                                >
+                                    <RefreshCw size={12} /> Resetar
+                                </button>
+                            )}
+                            <span className={`badge ${selectedStats ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
+                                {selectedStats ? 'Dados Sincronizados' : 'Aguardando Sinc'}
+                            </span>
+                        </div>
                     </div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
@@ -139,10 +150,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                             <div style={{ background: 'var(--color-bg-base)', borderRadius: '10px', padding: '16px', marginBottom: '20px', border: '1px solid var(--color-border)' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {[
-                                        { label: 'Consumo', value: `${selectedBill.consumption} kWh` },
-                                        { label: 'Compensado', value: `${selectedBill.compensated_energy || 0} kWh` },
-                                        { label: 'Tarifa', value: `R$ ${selectedBill.tariff_kwh?.toFixed(2) || '—'}` },
-                                        { label: 'Valor Total', value: `R$ ${selectedBill.total_value.toFixed(2)}`, primary: true },
+                                        { label: 'Consumo', value: `${(selectedBill.consumption || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kWh` },
+                                        { label: 'Compensado', value: `${(selectedBill.compensated_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kWh` },
+                                        { label: 'Tarifa', value: `R$ ${(selectedBill.tariff_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
+                                        { label: 'Valor Total', value: `R$ ${selectedBill.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, primary: true },
                                     ].map((item, idx) => (
                                         <div key={idx} style={{
                                             display: 'flex',

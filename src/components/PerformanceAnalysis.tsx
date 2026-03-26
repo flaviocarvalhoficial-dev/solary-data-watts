@@ -40,7 +40,7 @@ export const PerformanceAnalysis: React.FC<PerformanceAnalysisProps> = ({
                         const height = (b.val / maxVal) * 120;
                         return (b.val > 0 || b.label === 'Gerado') && (
                             <div key={b.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: b.col }}>{b.val.toFixed(0)}</div>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: b.col }}>{b.val.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div>
                                 <div
                                     className="animate-bar"
                                     style={{

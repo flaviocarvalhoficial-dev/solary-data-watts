@@ -47,6 +47,8 @@ function App() {
     const [isSavingClient, setIsSavingClient] = useState(false);
     const [newClientForm, setNewClientForm] = useState({ name: '', uc: '', platform: 'APsystems', system_id: '', investment: 0, current_kwh_value: 0.95 });
     const [showOnboarding, setShowOnboarding] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     React.useEffect(() => {
         const isDone = localStorage.getItem('solary_onboarding_done');
@@ -112,19 +114,39 @@ function App() {
     const handleManualLinkConfirm = async (clientId: string) => {
         if (!unlinkedBill) return;
         try {
-            // Atualizar o cadastro do cliente com a nova UC para vínculos futuros automáticos
-            await updateClient(clientId, { uc: unlinkedBill.parsed.uc });
+            let finalId = clientId;
+
+            // Se for um sistema ainda não importado para a tabela de clients, importamos agora
+            const isRegistered = clients.some(c => c.id === clientId);
+            if (!isRegistered) {
+                const system = systems.find(s => s.id === clientId);
+                if (system) {
+                    const newClient = await createClient({
+                        name: system.cliente || 'Sistema Importado',
+                        uc: unlinkedBill.parsed.uc,
+                        platform: 'APsystems',
+                        system_id: system.sid,
+                        city: system.cidade || '—',
+                        investment: 0
+                    });
+                    finalId = newClient.id;
+                }
+            } else {
+                // Se já estiver registrado, apenas atualiza a UC/Conta Contrato
+                await updateClient(clientId, { uc: unlinkedBill.parsed.uc });
+            }
 
             // Processar a fatura
-            await processSingleBill(unlinkedBill.file, unlinkedBill.parsed, clientId);
+            await processSingleBill(unlinkedBill.file, unlinkedBill.parsed, finalId);
 
             setUnlinkedBill(null);
-            alert("Fatura vinculada e UC salva no cadastro do cliente!");
+            alert("Fatura vinculada e Conta Contrato salva no cadastro do cliente!");
             refetchClients();
 
             // Navegar para o cliente recém-vinculado
-            navigateByProcessedClients([clientId]);
+            navigateByProcessedClients([finalId]);
         } catch (err: any) {
+            console.error('[MANUAL LINK ERROR]', err);
             alert(`Erro ao vincular: ${err.message}`);
         }
     };
@@ -294,67 +316,81 @@ function App() {
                 clientsCount={clients.length} incompleteCount={enrichedClients.filter(c => c.status === 'Incompleto').length}
                 signOut={signOut} handleExportPDF={handleExportPDF} handleStartEdit={triggerStartEdit}
                 removeClient={removeClient} selectedAC={selectedAC}
+                isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed}
             />
 
             <main className="main-content">
                 {!selectedClientId && (
-                    <header className="topbar">
-                        <h2 className="text-page-title">
-                            {activeTab === 'Dashboard' ? 'Dashboard' : activeTab === 'Bills' ? 'Central de Faturas' : activeTab === 'Fleet' ? 'Gestão de Frota' : activeTab}
-                        </h2>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} className="search-icon" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
+                    <header className="topbar" style={activeTab === 'Settings' ? { justifyContent: 'center', height: '80px' } : {}}>
+                        {activeTab === 'Settings' ? (
+                            <div className="search-container">
+                                <Search size={18} className="search-icon" />
                                 <input
-                                    type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                                    style={{ width: '200px', padding: '8px 12px 8px 34px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '13px' }}
+                                    type="text" placeholder="Buscar configurações..."
+                                    value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                    className="search-input"
                                 />
                             </div>
+                        ) : (
+                            <>
+                                <h2 className="text-page-title">
+                                    {activeTab === 'Dashboard' ? 'Dashboard' : activeTab === 'Bills' ? 'Central de Faturas' : activeTab === 'Fleet' ? 'Gestão de Frota' : activeTab}
+                                </h2>
 
-                            {availableCompetencies.length > 0 && (
-                                <div className="period-filter" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-bg-sidebar)', padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Período</span>
-                                    <select
-                                        value={selectedCompetency} onChange={(e) => setSelectedCompetency(e.target.value)}
-                                        style={{ border: 'none', background: 'none', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)', cursor: 'pointer', outline: 'none' }}
-                                    >
-                                        {availableCompetencies.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div className="search-container" style={{ maxWidth: '240px' }}>
+                                        <Search size={16} className="search-icon" />
+                                        <input
+                                            type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                                            className="search-input"
+                                            style={{ padding: '8px 12px 8px 40px' }}
+                                        />
+                                    </div>
+
+                                    {availableCompetencies.length > 0 && (
+                                        <div className="period-filter" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-bg-base)', padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Período</span>
+                                            <select
+                                                value={selectedCompetency} onChange={(e) => setSelectedCompetency(e.target.value)}
+                                                style={{ border: 'none', background: 'none', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)', cursor: 'pointer', outline: 'none' }}
+                                            >
+                                                {availableCompetencies.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                            className="btn btn-outline"
+                                            style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '8px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                            onClick={() => handleBatchExport(setSelectedClientId)}
+                                            title="Exportar Tudo"
+                                        >
+                                            <FileArchive size={16} />
+                                            <span className="hide-mobile" style={{ marginLeft: '6px' }}>Exportar ZIP</span>
+                                        </button>
+
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '8px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                            onClick={() => syncSystemsFromAPI()}
+                                            disabled={isSyncingAPI}
+                                            title="Sincronizar APIs"
+                                        >
+                                            <RefreshCw size={16} className={isSyncingAPI ? 'spin' : ''} />
+                                            <span className="hide-mobile" style={{ marginLeft: '6px' }}>{isSyncingAPI ? 'Sincronizando...' : 'Atualizar Dados'}</span>
+                                        </button>
+
+                                        <div style={{ width: '1px', height: '20px', background: 'var(--color-border)', margin: '0 4px' }} />
+                                        <button onClick={refetchClients} className="btn-icon" title="Recarregar do Banco"><RefreshCw size={18} /></button>
+                                        <button className="btn-icon" style={{ position: 'relative' }}>
+                                            <Bell size={20} />
+                                            {enrichedClients.filter(c => c.status === 'Incompleto').length > 0 && <div className="badge-dot" />}
+                                        </button>
+                                    </div>
                                 </div>
-                            )}
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <button
-                                    className="btn btn-outline"
-                                    style={{ height: '36px', padding: '0 12px', fontSize: '12px', borderRadius: '8px' }}
-                                    onClick={() => handleBatchExport(setSelectedClientId)}
-                                    title="Exportar Tudo"
-                                >
-                                    <FileArchive size={16} />
-                                    <span className="hide-mobile" style={{ marginLeft: '6px' }}>Exportar ZIP</span>
-                                </button>
-
-                                <button
-                                    className="btn btn-primary"
-                                    style={{ height: '36px', padding: '0 12px', fontSize: '12px', borderRadius: '8px' }}
-                                    onClick={() => syncSystemsFromAPI()}
-                                    disabled={isSyncingAPI}
-                                    title="Sincronizar APIs"
-                                >
-                                    <RefreshCw size={16} className={isSyncingAPI ? 'spin' : ''} />
-                                    <span className="hide-mobile" style={{ marginLeft: '6px' }}>{isSyncingAPI ? 'Sincronizando...' : 'Atualizar Dados'}</span>
-                                </button>
-
-                                <div style={{ width: '1px', height: '20px', background: 'var(--color-border)', margin: '0 4px' }} />
-
-                                <button onClick={refetchClients} className="btn-icon" title="Recarregar do Banco"><RefreshCw size={18} /></button>
-                                <button className="btn-icon" style={{ position: 'relative' }}>
-                                    <Bell size={20} />
-                                    {enrichedClients.filter(c => c.status === 'Incompleto').length > 0 && <div className="badge-dot" />}
-                                </button>
-                            </div>
-                        </div>
+                            </>
+                        )}
                     </header>
                 )}
 
@@ -475,8 +511,9 @@ function App() {
                             isImporting={isImporting} handleBatchExport={() => handleBatchExport(setSelectedClientId)} isUploading={isUploading || isExporting}
                             setShowNewClientModal={setShowNewClientModal} filteredClients={filteredClients}
                             handleDeleteSelected={async () => {
-                                if (!confirm(`Excluir sistemas?`)) return;
-                                for (const id of clients.map(c => c.id)) await removeClient(id);
+                                if (!confirm(`Excluir ${selectedIds.length} sistemas?`)) return;
+                                for (const id of selectedIds) await removeClient(id);
+                                setSelectedIds([]);
                                 refetchClients();
                             }}
                             handleClearAll={async () => {
@@ -486,7 +523,7 @@ function App() {
                             }}
                             setSelectedClientId={setSelectedClientId} handleExportPDF={handleExportPDF}
                             setShowXLSImportModal={setShowXLSImportModal} updateClient={handleUpdateClientOrSystem}
-                            selectedIds={[]} setSelectedIds={() => { }} // simplified for this pass
+                            selectedIds={selectedIds} setSelectedIds={setSelectedIds}
                         />
                     ) : (
                         <div className="empty-state">
@@ -497,13 +534,6 @@ function App() {
                     )}
                 </div>
             </main>
-
-            {/* Watts Assistant - Persistent in Bottom Right corner */}
-            <WattsMascot
-                state={activeTab === 'Dashboard' ? 'saudando' : activeTab === 'Settings' ? 'normal' : 'feliz'}
-                size={120}
-                floated={true}
-            />
         </div>
     );
 }

@@ -34,9 +34,10 @@ export const parseFaturaPDF = async (file: File): Promise<ParsedBillData> => {
 
         // REGEX STRATEGY (Specifically for Equatorial Pará / Similar Layouts)
 
-        // 1. UC / INSTALAÇÃO / CONTA CONTRATO / CÓDIGO DO CLIENTE
-        const ucMatch = fullText.match(/(?:INSTALAÇÃO|Nº DA INSTALAÇÃO|CONTA CONTRATO|CÓDIGO DO CLIENTE|UNID\. CONSUMIDORA)\s*:?\s*(\d+)/i)
-            || fullText.match(/(\d{8,12})/); // Fallback p/ número longo isolado (comum em UCs)
+        // 1. CONTA CONTRATO (Prioridade) / UC / INSTALAÇÃO
+        const ucMatch = fullText.match(/(?:CONTA\s*CONTRATO|Nº\s*DO\s*CONTRATO|CONTRATO)\s*:?\s*(\d{8,12})/i)
+            || fullText.match(/(?:INSTALAÇÃO|Nº\s*DA\s*INSTALAÇÃO|UNID\.\s*CONSUMIDORA|CÓDIGO\s*DO\s*CLIENTE)\s*:?\s*(\d+)/i)
+            || fullText.match(/(\d{8,12})/); // Fallback p/ número longo isolado (comum em UCs/Contratos)
         const uc = ucMatch ? ucMatch[1] : 'N/A';
 
         // 2. COMPETENCY (MÊS/ANO)

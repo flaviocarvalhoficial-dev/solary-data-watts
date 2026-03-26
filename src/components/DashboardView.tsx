@@ -204,7 +204,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sistema</th>
-                                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unidade Consumidora (UC)</th>
+                                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conta Contrato</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plataforma</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status do Relatório</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Última Atu.</th>

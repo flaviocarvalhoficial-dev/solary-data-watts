@@ -22,6 +22,8 @@ interface SidebarProps {
     selectedAC: any;
     platformFilter: string;
     setPlatformFilter: (tab: string) => void;
+    isCollapsed: boolean;
+    setIsCollapsed: (val: boolean) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -38,115 +40,154 @@ const Sidebar: React.FC<SidebarProps> = ({
     removeClient,
     selectedAC,
     platformFilter,
-    setPlatformFilter
+    setPlatformFilter,
+    isCollapsed,
+    setIsCollapsed
 }) => {
     const [isFleetExpanded, setIsFleetExpanded] = React.useState(true);
     const userInitial = (user?.email || 'A').charAt(0).toUpperCase();
     const userName = user?.user_metadata?.full_name || user?.email || 'Admin';
 
     return (
-        <aside className="sidebar">
-            {/* Logo Section */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '12px 8px', marginBottom: '24px' }}>
-                <WattsMascot state="normal" size={28} />
-                <h1 className="text-logo-handwritten" style={{ fontSize: '24px', lineHeight: 1, marginLeft: '2px' }}>Watts</h1>
+        <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+            <div className="logo-toggle-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isCollapsed ? '0' : '12px 8px', marginBottom: '24px' }}>
+                <div className="mascot-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <WattsMascot state="normal" size={isCollapsed ? 32 : 36} />
+                    <h1 className="text-logo-handwritten" style={{ fontSize: '32px', lineHeight: 1, marginLeft: '4px' }}>Watts</h1>
+                </div>
+                <button
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '6px' }}
+                    className="hover-bg"
+                >
+                    {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                </button>
             </div>
 
-            {/* Navigation Groups */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px' }}>
-                <div className="sidebar-group-label" style={{ padding: '0 12px', marginBottom: '8px' }}>Dashboard</div>
-                <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
+                <nav className="sidebar-group" style={{ marginBottom: '8px' }}>
                     <a href="#" className={`sidebar-item ${activeTab === 'Dashboard' && !selectedClientId ? 'active' : ''}`}
-                        onClick={e => { e.preventDefault(); setActiveTab('Dashboard'); setSelectedClientId(null); }}>
-                        <LayoutDashboard size={17} />
-                        <span>Overview</span>
+                        onClick={e => { e.preventDefault(); setActiveTab('Dashboard'); setSelectedClientId(null); }}
+                        title={isCollapsed ? "Dashboard" : ""}>
+                        <LayoutDashboard size={isCollapsed ? 22 : 18} />
+                        <span>Dashboard</span>
                     </a>
-                </nav>
 
-                <div
-                    onClick={() => setIsFleetExpanded(!isFleetExpanded)}
-                    className="sidebar-group-label"
-                    style={{ padding: '0 12px', marginBottom: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                    Gestão de Frota
-                    {isFleetExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
+                    <div
+                        onClick={() => setIsFleetExpanded(!isFleetExpanded)}
+                        className={`sidebar-item ${activeTab === 'Fleet' && !selectedClientId ? 'active' : ''}`}
+                        style={{ cursor: 'pointer', justifyContent: 'space-between', gap: isCollapsed ? '0' : '8px' }}
+                        title={isCollapsed ? "Gestão de Projetos" : ""}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? '0' : '8px' }}>
+                            <Sun size={isCollapsed ? 22 : 18} />
+                            <span>Gestão de Projetos</span>
+                        </div>
+                        {!isCollapsed && (isFleetExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
+                    </div>
 
-                {isFleetExpanded && (
-                    <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
-                        <a href="#" className={`sidebar-item ${activeTab === 'Fleet' && platformFilter === 'Todas' && !selectedClientId ? 'active' : ''}`}
-                            onClick={e => { e.preventDefault(); setActiveTab('Fleet'); setPlatformFilter('Todas'); setSelectedClientId(null); }}>
-                            <Sun size={17} />
-                            <span>Visão Geral</span>
-                        </a>
-                        {['APsystems', 'Sungrow', 'GoodWe'].map(p => (
-                            <a key={p} href="#" className={`sidebar-item ${activeTab === 'Fleet' && platformFilter === p && !selectedClientId ? 'active' : ''}`}
-                                onClick={e => { e.preventDefault(); setActiveTab('Fleet'); setPlatformFilter(p); setSelectedClientId(null); }}>
-                                <div style={{ width: '17px', height: '17px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600 }}>{p[0]}</div>
-                                <span>{p}</span>
-                            </a>
-                        ))}
-                    </nav>
-                )}
+                    {isFleetExpanded && (
+                        <div style={{ paddingLeft: isCollapsed ? '0' : '16px', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                            {['APsystems', 'Sungrow', 'GoodWe'].map(p => (
+                                <a key={p} href="#" className={`sidebar-item ${activeTab === 'Fleet' && platformFilter === p && !selectedClientId ? 'active' : ''}`}
+                                    onClick={e => { e.preventDefault(); setActiveTab('Fleet'); setPlatformFilter(p); setSelectedClientId(null); }}
+                                    style={{ padding: '6px 12px', fontSize: '12px', gap: isCollapsed ? '0' : '8px' }}
+                                    title={isCollapsed ? p : ""}>
+                                    <div style={{
+                                        width: isCollapsed ? '22px' : '18px',
+                                        height: isCollapsed ? '22px' : '18px',
+                                        borderRadius: '4px',
+                                        background: 'rgba(99, 102, 241, 0.1)',
+                                        color: 'var(--color-primary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: isCollapsed ? '13px' : '10px',
+                                        fontWeight: 700
+                                    }}>{p[0]}</div>
+                                    <span>{p}</span>
+                                </a>
+                            ))}
+                        </div>
+                    )}
 
-                <div className="sidebar-group-label" style={{ padding: '0 12px', marginBottom: '8px' }}>Operacional</div>
-                <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
                     <a href="#" className={`sidebar-item ${activeTab === 'Bills' && !selectedClientId ? 'active' : ''}`}
-                        onClick={e => { e.preventDefault(); setActiveTab('Bills'); setSelectedClientId(null); }}>
-                        <FileText size={17} />
+                        onClick={e => { e.preventDefault(); setActiveTab('Bills'); setSelectedClientId(null); }}
+                        title={isCollapsed ? "Central de Faturas" : ""}>
+                        <FileText size={isCollapsed ? 22 : 18} />
                         <span>Faturas</span>
                     </a>
                 </nav>
 
-                <div className="sidebar-group-label" style={{ padding: '0 12px', marginBottom: '8px' }}>Sistema</div>
-                <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
+                <div style={{ height: '1px', background: 'var(--color-border)', margin: '16px 12px', opacity: 0.5 }} />
+
+                <nav className="sidebar-group">
                     <a href="#" className={`sidebar-item ${activeTab === 'Settings' && !selectedClientId ? 'active' : ''}`}
-                        onClick={e => { e.preventDefault(); setActiveTab('Settings'); setSelectedClientId(null); }}>
-                        <SettingsIcon size={17} />
+                        onClick={e => { e.preventDefault(); setActiveTab('Settings'); setSelectedClientId(null); }}
+                        title={isCollapsed ? "Configurações" : ""}>
+                        <SettingsIcon size={isCollapsed ? 22 : 18} />
                         <span>Configurações</span>
                     </a>
                 </nav>
 
                 {selectedClientId && (
-                    <>
-                        <div className="sidebar-group-label" style={{ padding: '0 12px', marginTop: '12px', marginBottom: '8px' }}>Sistema Selecionado</div>
-                        <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
-                            <a href="#" className="sidebar-item active" onClick={e => { e.preventDefault(); setSelectedClientId(null); }}>
-                                <ChevronLeft size={17} />
+                    <div style={{ marginTop: '32px', padding: isCollapsed ? '0' : '0 8px' }}>
+                        {!isCollapsed && <div className="sidebar-group-label" style={{ marginBottom: '12px', color: 'var(--color-primary)', fontWeight: 700 }}>Sistema Ativo</div>}
+                        <nav className="sidebar-group" style={{ background: isCollapsed ? 'transparent' : 'var(--color-primary-muted)', borderRadius: '12px', padding: isCollapsed ? '0' : '4px' }}>
+                            <a href="#" className="sidebar-item" onClick={e => { e.preventDefault(); setSelectedClientId(null); }}
+                                style={{ color: 'var(--color-primary)' }}
+                                title={isCollapsed ? "Voltar" : ""}>
+                                <ChevronLeft size={isCollapsed ? 22 : 18} />
                                 <span>Voltar</span>
                             </a>
                             <button className="sidebar-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer' }}
-                                onClick={() => selectedAC && handleExportPDF(selectedAC)}>
-                                <Download size={17} />
-                                <span>Baixar PDF</span>
+                                onClick={() => selectedAC && handleExportPDF(selectedAC)}
+                                title={isCollapsed ? "Baixar PDF" : ""}>
+                                <Download size={isCollapsed ? 22 : 18} />
+                                <span>Exportar PDF</span>
                             </button>
-                            <button className="sidebar-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer' }} onClick={handleStartEdit}>
-                                <Edit3 size={17} />
+                            <button className="sidebar-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer' }} onClick={handleStartEdit}
+                                title={isCollapsed ? "Editar Fatura" : ""}>
+                                <Edit3 size={isCollapsed ? 22 : 18} />
                                 <span>Editar Fatura</span>
                             </button>
                             <button className="sidebar-item" style={{ width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--color-status-danger-text)' }}
-                                onClick={async () => { if (confirm('Remover este sistema?')) { await removeClient(selectedClientId); setSelectedClientId(null); } }}>
-                                <X size={17} />
-                                <span>Excluir Sistema</span>
+                                onClick={async () => { if (confirm('Remover este sistema?')) { await removeClient(selectedClientId); setSelectedClientId(null); } }}
+                                title={isCollapsed ? "Excluir Sistema" : ""}>
+                                <X size={isCollapsed ? 22 : 18} />
+                                <span>Remover</span>
                             </button>
                         </nav>
-                    </>
+                    </div>
                 )}
             </div>
 
-            {/* User Footer */}
-            <div style={{ padding: '16px 12px', borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-sidebar)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '13px', flexShrink: 0 }}>
+            <div style={{ padding: isCollapsed ? '16px 0' : '16px 12px', borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-sidebar)', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: isCollapsed ? 'center' : 'flex-start', padding: isCollapsed ? '0' : '0 4px' }}>
+                    <div style={{
+                        width: isCollapsed ? '40px' : '32px',
+                        height: isCollapsed ? '40px' : '32px',
+                        borderRadius: '50%',
+                        background: 'var(--color-primary)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 600,
+                        fontSize: isCollapsed ? '16px' : '13px',
+                        flexShrink: 0,
+                        transition: 'all 0.2s ease'
+                    }}>
                         {userInitial}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="user-info" style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</div>
                         <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Administrador</div>
                     </div>
-                    <button onClick={signOut} title="Sair" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px' }}>
-                        <LogOut size={16} />
-                    </button>
+                    {!isCollapsed && (
+                        <button onClick={signOut} title="Sair" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px' }}>
+                            <LogOut size={16} />
+                        </button>
+                    )}
                 </div>
             </div>
         </aside>

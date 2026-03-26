@@ -14,24 +14,73 @@ interface BillEditModalProps {
 export const BillEditModal: React.FC<BillEditModalProps> = ({
     isOpen, onClose, editData, setEditData, onSave, selectedAC, selectedBill
 }) => {
+    // Local state to handle typing decimals (dots/commas) without immediate numeric coercion
+    const [localState, setLocalState] = React.useState<any>({});
+
+    React.useEffect(() => {
+        if (isOpen) {
+            const initial: any = { ...editData };
+            // Populate initial values, ensuring generation comes from selectedAC if not in editData
+            if (initial.generation === undefined) initial.generation = selectedAC.generation;
+
+            // Convert numbers to formatted strings for the input
+            const formatted: any = {};
+            Object.keys(initial).forEach(key => {
+                const val = initial[key];
+                if (typeof val === 'number' && key !== 'competency') {
+                    formatted[key] = val.toString().replace('.', ',');
+                } else {
+                    formatted[key] = val;
+                }
+            });
+            setLocalState(formatted);
+        }
+    }, [isOpen]); // Only run when modal opens/closes
+
     if (!isOpen) return null;
 
-    const parseFormattedNumber = (val: string) => {
+    const parseBrazilianNumber = (val: string) => {
         if (!val) return 0;
-        const normalized = val.replace(',', '.');
+
+        let normalized = val.trim();
+
+        // Se tem vírgula, assume padrão BR (ponto é milhar, vírgula é decimal)
+        if (normalized.includes(',')) {
+            normalized = normalized.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Se não tem vírgula mas tem um único ponto, pode ser decimal (padrão US/Dev)
+            // Verificamos se há apenas um ponto e se ele não está no início do número
+            const dotCount = (normalized.match(/\./g) || []).length;
+            if (dotCount === 1) {
+                // Mantém o ponto como decimal
+            } else if (dotCount > 1) {
+                // Múltiplos pontos indicam separador de milhar (1.234.567) -> Remove todos
+                normalized = normalized.replace(/\./g, '');
+            }
+        }
+
         return parseFloat(normalized) || 0;
+    };
+
+    const handleFieldChange = (field: string, val: string) => {
+        // Update local display state
+        setLocalState((p: any) => ({ ...p, [field]: val }));
+
+        // Update parent state with parsed numeric value
+        const numericVal = field === 'competency' ? val : parseBrazilianNumber(val);
+        setEditData((p: any) => ({ ...p, [field]: numericVal }));
     };
 
     const formFields = [
         { label: 'Competência', field: 'competency', type: 'text', fullWidth: true, hint: 'Mês e ano da conta (Ex: 03/2026)' },
-        { label: 'Custo Total (R$)', field: 'total_value', type: 'text', hint: 'Valor total pago na fatura.' },
-        { label: 'Geração Solar (kWh)', field: 'generation', type: 'text', hint: 'Total produzido pelo inversor no mês.' },
-        { label: 'Consumo da Rede (kWh)', field: 'consumption', type: 'text', hint: 'Energia da concessionária (Grid).' },
-        { label: 'Compensada (kWh)', field: 'compensated_energy', type: 'text', hint: 'Energia que abateu o consumo.' },
-        { label: 'Injetada (kWh)', field: 'injected_energy', type: 'text', hint: 'Excedente total enviado à rede.' },
-        { label: 'Tarifa (R$/kWh)', field: 'tariff_kwh', type: 'text', hint: 'Valor base do kWh (Ex: 0,95).' },
-        { label: 'Saldo Créditos (kWh)', field: 'credit_balance', type: 'text', hint: 'Saldo total para uso futuro.' },
-        { label: 'CIP / Iluminação (R$)', field: 'street_lighting', type: 'text', fullWidth: true, hint: 'Taxa de Iluminação Pública.' },
+        { label: 'Custo Total (R$)', field: 'total_value', type: 'text', hint: 'Ex: 1541,53' },
+        { label: 'Geração Solar (kWh)', field: 'generation', type: 'text', hint: 'Ex: 1541,53' },
+        { label: 'Consumo da Rede (kWh)', field: 'consumption', type: 'text', hint: 'Energia da concessionária.' },
+        { label: 'Compensada (kWh)', field: 'compensated_energy', type: 'text', hint: 'Faturamento energy injetada.' },
+        { label: 'Injetada (kWh)', field: 'injected_energy', type: 'text', hint: 'Excedente total enviado.' },
+        { label: 'Tarifa (R$/kWh)', field: 'tariff_kwh', type: 'text', hint: 'Ex: 0,9582' },
+        { label: 'Saldo Créditos (kWh)', field: 'credit_balance', type: 'text', hint: 'Saldo total acumulado.' },
+        { label: 'CIP / Iluminação (R$)', field: 'street_lighting', type: 'text', fullWidth: true, hint: 'Taxa IP.' },
     ];
 
     return (
@@ -54,7 +103,7 @@ export const BillEditModal: React.FC<BillEditModalProps> = ({
                                 <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-secondary)' }}>{label}</label>
                                 {field === 'tariff_kwh' && !editData[field] && (
                                     <button
-                                        onClick={() => setEditData((p: any) => ({ ...p, tariff_kwh: 0.95 }))}
+                                        onClick={() => handleFieldChange('tariff_kwh', '0,95')}
                                         style={{ fontSize: '10px', background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontWeight: 500 }}
                                     >
                                         Sugerir (R$ 0,95)
@@ -63,14 +112,8 @@ export const BillEditModal: React.FC<BillEditModalProps> = ({
                             </div>
                             <input
                                 type={type}
-                                value={editData[field] ?? (field === 'generation' ? selectedAC.generation : '')}
-                                onChange={e => {
-                                    const val = e.target.value;
-                                    setEditData((p: any) => ({
-                                        ...p,
-                                        [field]: field === 'competency' ? val : parseFormattedNumber(val)
-                                    }));
-                                }}
+                                value={localState[field] ?? ''}
+                                onChange={e => handleFieldChange(field, e.target.value)}
                                 placeholder={hint}
                                 style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '14px', background: 'var(--color-bg-base)' }}
                             />
@@ -100,7 +143,7 @@ export const BillEditModal: React.FC<BillEditModalProps> = ({
                         <div>
                             <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Novo Saldo</p>
                             <p style={{ fontSize: '18px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                                {(editData.credit_balance || 0).toFixed(0)} kWh
+                                {(editData.credit_balance || 0).toFixed(2)} kWh
                             </p>
                         </div>
                     </div>

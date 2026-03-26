@@ -28,7 +28,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const formatPct = (val: number | null) =>
-        val !== null ? `${val.toFixed(1)}%` : 'N/A';
+        val !== null ? `${val.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : 'N/A';
 
     return (
         <div id="executive-report-template" style={{
@@ -61,7 +61,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
                 </div>
                 <div style={{ textAlign: 'right', fontSize: '11px' }}>
                     <div style={{ fontWeight: 700 }}>{data.cliente}</div>
-                    <div style={{ color: 'var(--color-text-muted)' }}>UC: {data.uc} | {data.concessionaria}</div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>CONTA CONTRATO: {data.uc} | {data.concessionaria}</div>
                     <div style={{ color: 'var(--color-text-muted)', marginTop: '2px' }}>Competência: <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>{data.competencia}</span></div>
                 </div>
             </header>
@@ -75,7 +75,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
                     {[
                         { label: 'Tempo Ativo', value: resultado.tempo_sistema_ativo, icon: <Clock size={16} /> },
                         { label: 'Investimento', value: formatCurrency(dados_entrada.financeiro.investimento_inicial), icon: <Wallet size={16} /> },
-                        { label: 'Saldo Créditos', value: `${resultado.saldo_creditos_kwh.toFixed(0)} kWh`, icon: <Zap size={16} /> },
+                        { label: 'Saldo Créditos', value: `${(resultado.saldo_creditos_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} kWh`, icon: <Zap size={16} /> },
                         { label: 'Valor kWh Atual', value: formatCurrency(dados_entrada.financeiro.valor_kwh_atual), icon: <TrendingUp size={16} /> },
                     ].map((item, idx) => (
                         <div key={idx} style={{ background: 'var(--color-bg-muted)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
@@ -141,7 +141,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
                     <div style={{ background: '#EEF2FF', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid #E0E7FF', height: '120px' }}>
                         <div style={{ marginBottom: '12px' }}>
                             <p style={{ fontSize: '11px', color: '#4338CA', fontWeight: 600, marginBottom: '2px' }}>PAYBACK (TEMPO)</p>
-                            <p style={{ fontSize: '18px', fontWeight: 700, color: '#1E1B4B' }}>{resultado.payback_anos ? `${resultado.payback_anos.toFixed(2)} anos` : 'N/A'}</p>
+                            <p style={{ fontSize: '18px', fontWeight: 700, color: '#1E1B4B' }}>{resultado.payback_anos ? `${resultado.payback_anos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} anos` : 'N/A'}</p>
                         </div>
                         <div>
                             <p style={{ fontSize: '11px', color: '#4338CA', fontWeight: 600, marginBottom: '2px' }}>ESTIMATIVA</p>
@@ -159,7 +159,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '20px' }}>
                     <div style={{ background: 'var(--color-bg-muted)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
                         <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '4px' }}>SALDO EM CRÉDITOS</p>
-                        <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{resultado.saldo_creditos_kwh.toFixed(0)} <span style={{ fontSize: '12px' }}>kWh</span></p>
+                        <p style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{(resultado.saldo_creditos_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} <span style={{ fontSize: '12px' }}>kWh</span></p>
                         <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px' }}>≈ {formatCurrency(resultado.creditos_em_reais)}</p>
                     </div>
                     <div style={{ background: 'var(--color-bg-muted)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
@@ -196,13 +196,26 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
             </section>
 
             <footer style={{ marginTop: '40px', borderTop: '1px solid #F3F4F6', paddingTop: '20px', textAlign: 'center' }}>
-                <p style={{ fontSize: '11px', color: '#9CA3AF' }}>
+                <p style={{ fontSize: '11px', color: '#9CA3AF', marginBottom: '16px' }}>
                     {reportFooter}
                 </p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px', fontSize: '10px', color: '#D1D5DB' }}>
-                    <span>Modo: {data.modo_relatorio.toUpperCase()}</span>
-                    <span>Fonte Fatura: OCR PARSER v2</span>
-                    <span>© 2026 Watts</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '10px', fontWeight: 500 }}>
+                        <span>Gerado com</span>
+                        <span style={{
+                            fontFamily: "'Caveat', cursive",
+                            fontSize: '18px',
+                            color: 'var(--color-primary)',
+                            fontWeight: 700,
+                            marginLeft: '2px',
+                            lineHeight: 1
+                        }}>Watts</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '9px', color: '#D1D5DB' }}>
+                        <span>Modo: {data.modo_relatorio.toUpperCase()}</span>
+                        <span>Fonte Fatura: OCR PARSER v2</span>
+                        <span>© 2026 Watts Solar Data Digital</span>
+                    </div>
                 </div>
             </footer>
         </div>

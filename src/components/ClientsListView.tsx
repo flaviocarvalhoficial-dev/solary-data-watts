@@ -88,12 +88,12 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                 style={{
                                     padding: '6px 12px',
                                     fontSize: '11px',
-                                    fontWeight: 600,
+                                    fontWeight: 500,
                                     borderRadius: '8px',
                                     border: 'none',
                                     cursor: 'pointer',
-                                    background: platformFilter === p ? 'var(--color-text-primary)' : 'transparent',
-                                    color: platformFilter === p ? '#FFF' : 'var(--color-text-muted)',
+                                    background: platformFilter === p ? 'var(--color-bg-base)' : 'transparent',
+                                    color: platformFilter === p ? 'var(--color-primary)' : 'var(--color-text-muted)',
                                     transition: 'all 0.2s'
                                 }}>
                                 {p === 'Todas' ? 'Todas Marcas' : p}
@@ -102,10 +102,10 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button className="btn btn-primary" title="Adicionar Novo Sistema" style={{ borderRadius: '8px', fontSize: '13px', padding: '8px 16px' }} onClick={() => setShowNewClientModal(true)}>
+                    <button className="btn btn-primary" title="Adicionar Novo Sistema" style={{ borderRadius: '8px', fontSize: '12px', padding: '8px 12px', whiteSpace: 'nowrap' }} onClick={() => setShowNewClientModal(true)}>
                         <Plus size={14} /> Novo Sistema
                     </button>
-                    <button className="btn btn-outline" title="Dados em Massa (XLS)" style={{ borderRadius: '8px', fontSize: '13px', padding: '8px 16px' }} onClick={() => setShowXLSImportModal && setShowXLSImportModal(true)}>
+                    <button className="btn btn-outline" title="Dados em Massa (XLS)" style={{ borderRadius: '8px', fontSize: '12px', padding: '8px 12px', whiteSpace: 'nowrap' }} onClick={() => setShowXLSImportModal && setShowXLSImportModal(true)}>
                         <Plus size={14} /> Importar XLS
                     </button>
                 </div>
@@ -116,23 +116,23 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead style={{ background: 'var(--color-bg-base)' }}>
                             <tr>
-                                <th style={{ width: 44, padding: '12px 16px', textAlign: 'left' }}>
+                                <th style={{ width: 44, padding: '20px 24px', textAlign: 'left' }}>
                                     <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
                                 </th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Cliente</th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Local / UC</th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Geração Total</th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Hj (kWh)</th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Status</th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Última Atualização</th>
-                                <th className="sidebar-group-label" style={{ padding: '12px 16px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Relatório</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Cliente</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Local / Conta Contrato</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Geração Total</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Hj (kWh)</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Status</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Última Atualização</th>
+                                <th className="sidebar-group-label" style={{ padding: '20px 24px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' }}>Relatório</th>
                                 <th style={{ width: 80, borderBottom: '1px solid var(--color-border)' }}></th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredClients.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} style={{ padding: '80px 24px', textAlign: 'center' }}>
+                                    <td colSpan={8} style={{ padding: '100px 24px', textAlign: 'center' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                                             <WattsMascot state="dormindo" size={120} />
                                             <div style={{ color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 500 }}>
@@ -144,7 +144,7 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                             ) : filteredClients.map(ac => (
                                 <tr key={ac.id} onClick={() => setSelectedClientId(ac.id)}
                                     style={{ cursor: 'pointer', borderBottom: '1px solid var(--color-border)', backgroundColor: selectedIds.includes(ac.id) ? 'rgba(232, 89, 60, 0.05)' : 'transparent' }}>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '20px 24px' }}>
                                         <input
                                             type="checkbox"
                                             checked={selectedIds.includes(ac.id)}
@@ -152,7 +152,7 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                             onClick={e => e.stopPropagation()}
                                         />
                                     </td>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '20px 24px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: 'var(--color-primary-muted)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '10px' }}>
                                                 {ac.name.charAt(0)}
@@ -177,31 +177,31 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                             </div>
                                         </div>
                                     </td>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '20px 24px' }}>
                                         <div style={{ fontSize: '12px', color: 'var(--color-text-primary)' }}>{ac.city || '—'}</div>
-                                        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>UC {ac.uc}</div>
+                                        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Conta {ac.uc}</div>
                                     </td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-text-primary)' }}>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : '—'}</td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: (ac.energy_today || 0) > 0 ? 'var(--color-trend-up)' : 'var(--color-text-muted)' }}>
+                                    <td style={{ padding: '20px 24px', fontSize: '13px', color: 'var(--color-text-primary)' }}>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : '—'}</td>
+                                    <td style={{ padding: '20px 24px', fontSize: '13px', fontWeight: 600, color: (ac.energy_today || 0) > 0 ? 'var(--color-trend-up)' : 'var(--color-text-muted)' }}>
                                         {ac.energy_today ? `${ac.energy_today.toFixed(1)}` : '—'}
                                     </td>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '20px 24px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: ac.api_status === 'Normal' ? '#1E7E34' : ac.api_status === 'Atenção' ? '#D97706' : '#C0392B' }}></div>
                                             <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{ac.api_status || 'Offline'}</span>
                                         </div>
                                     </td>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '20px 24px' }}>
                                         <div style={{ fontSize: '12px', color: 'var(--color-text-primary)' }}>
                                             {ac.updated_at ? new Date(ac.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
                                         </div>
                                     </td>
-                                    <td style={{ padding: '12px 16px' }}>
+                                    <td style={{ padding: '20px 24px' }}>
                                         <span className={`badge badge-${ac.status === 'Completo' ? 'success' : ac.status === 'Divergente' ? 'warning' : 'danger'}`}>
                                             {ac.latestBill ? ac.latestBill.competency : 'Pendente'}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                    <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                         <ChevronRight size={14} color="var(--color-text-muted)" />
                                     </td>
                                 </tr>

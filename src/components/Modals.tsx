@@ -24,7 +24,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
                 </div>
                 {[
                     { label: 'Nome do Cliente', field: 'name', type: 'text', placeholder: 'Ex: João Silva' },
-                    { label: 'Unidade Consumidora (UC)', field: 'uc', type: 'text', placeholder: 'Ex: 15690453' },
+                    { label: 'Conta Contrato', field: 'uc', type: 'text', placeholder: 'Ex: 3028275551' },
                     { label: 'System ID (APsystems)', field: 'system_id', type: 'text', placeholder: 'ID da plataforma' },
                     { label: 'Investimento (R$)', field: 'investment', type: 'number', placeholder: '0' },
                     { label: 'Tarifa (R$/kWh)', field: 'current_kwh_value', type: 'number', placeholder: '0.95' },
@@ -297,8 +297,8 @@ export const ManualLinkModal: React.FC<ManualLinkModalProps> = ({
                             <AlertCircle size={24} />
                         </div>
                         <div>
-                            <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Vínculo de UC Manual</h3>
-                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Não encontramos um sistema para a UC {unlinkedBill.parsed.uc}</p>
+                            <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Vínculo de Conta Contrato Manual</h3>
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Não encontramos um sistema para a Conta Contrato {unlinkedBill.parsed.uc}</p>
                         </div>
                     </div>
                 </div>
@@ -344,7 +344,7 @@ export const ManualLinkModal: React.FC<ManualLinkModalProps> = ({
                             >
                                 <div>
                                     <div style={{ fontSize: '14px', fontWeight: selectedId === c.id ? 700 : 500, color: 'var(--color-text-primary)' }}>{c.name}</div>
-                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>ID {c.system_id} · UC {c.uc}</div>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>ID {c.system_id} · Conta {c.uc}</div>
                                 </div>
                                 {selectedId === c.id && <CheckCircle2 size={16} color="var(--color-primary)" />}
                             </div>
@@ -388,7 +388,7 @@ export const BillReviewModal: React.FC<BillReviewModalProps> = ({
     if (!show || !data) return null;
 
     const items = [
-        { label: 'UC Identificada', value: data.uc, color: '#111827' },
+        { label: 'Conta Contrato', value: data.uc, color: '#111827' },
         { label: 'Competência', value: data.competency, color: '#111827' },
         { label: 'Valor Total', value: `R$ ${data.totalValue?.toLocaleString('pt-BR')}`, color: 'var(--color-primary)' },
         { label: 'Consumo (Rede)', value: `${data.gridConsumption} kWh`, color: '#374151' },
@@ -415,7 +415,7 @@ export const BillReviewModal: React.FC<BillReviewModalProps> = ({
                     </div>
                     <div>
                         <div style={{ fontSize: '15px', fontWeight: 700 }}>{client?.name || 'Vínculo Manual'}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>ID: {client?.system_id} · UC do Cadastro: {client?.uc}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>ID: {client?.system_id} · Conta do Cadastro: {client?.uc}</div>
                     </div>
                 </div>
 

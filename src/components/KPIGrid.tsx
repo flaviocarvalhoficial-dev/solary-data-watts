@@ -12,21 +12,21 @@ export const KPIGrid: React.FC<KPIGridProps> = ({ selectedAC, selectedBill, sele
     const kpis = [
         {
             label: 'Geração Reportada',
-            value: selectedAC.generation > 0 ? `${selectedAC.generation.toFixed(0)} kWh` : '—',
+            value: selectedAC.generation > 0 ? `${selectedAC.generation.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh` : '—',
             sub: 'Total mensal (API)',
             color: 'var(--color-primary)',
             tooltip: 'Volume total de energia registrado pela plataforma de monitoramento neste ciclo.'
         },
         {
             label: 'Economia Estimada',
-            value: selectedStats ? `R$ ${selectedStats.resultado.economia_mensal.toFixed(2)}` : '—',
+            value: selectedStats ? `R$ ${selectedStats.resultado.economia_mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
             sub: 'Geração vs Tarifa',
             color: 'var(--color-status-success-text)',
             tooltip: 'Valor economizado multiplicando a energia compensada pela tarifa vigente.'
         },
         {
             label: 'Saldo de Créditos',
-            value: selectedBill ? `${selectedBill.credit_balance || 0} kWh` : '—',
+            value: selectedBill ? `${(selectedBill.credit_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh` : '—',
             sub: 'Recuperado da fatura',
             color: 'var(--color-text-primary)',
             tooltip: 'Acúmulo de energia injetada disponível para uso em ciclos futuros.'
