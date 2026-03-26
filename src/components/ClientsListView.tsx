@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw, Zap, FileArchive, Plus, Download } from 'lucide-react';
-import { ActiveClient } from '../App';
+import { ActiveClient } from '../utils/solarHelpers';
 
 interface ClientsListViewProps {
     statusFilter: string;
@@ -13,8 +13,14 @@ interface ClientsListViewProps {
     isUploading: boolean;
     setShowNewClientModal: (show: boolean) => void;
     filteredClients: ActiveClient[];
+    selectedIds: string[];
+    setSelectedIds: (ids: string[] | ((prev: string[]) => string[])) => void;
+    handleDeleteSelected: () => void;
+    handleClearAll: () => void;
     setSelectedClientId: (id: string | null) => void;
     handleExportPDF: (ac: ActiveClient) => void;
+    currentPlatform?: string;
+    setShowXLSImportModal?: (show: boolean) => void;
 }
 
 const ClientsListView: React.FC<ClientsListViewProps> = ({
@@ -28,9 +34,26 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
     isUploading,
     setShowNewClientModal,
     filteredClients,
+    selectedIds,
+    setSelectedIds,
+    handleDeleteSelected,
+    handleClearAll,
     setSelectedClientId,
-    handleExportPDF
+    handleExportPDF,
+    currentPlatform,
+    setShowXLSImportModal
 }) => {
+    const allSelected = filteredClients.length > 0 && selectedIds.length === filteredClients.length;
+
+    const handleSelectAll = () => {
+        if (allSelected) setSelectedIds([]);
+        else setSelectedIds(filteredClients.map(c => c.id));
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
     return (
         <>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
@@ -41,14 +64,27 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                             style={{ padding: '6px 14px', fontSize: '13px' }}>{s}
                         </button>
                     ))}
+                    {selectedIds.length > 0 && (
+                        <button className="btn btn-outline" style={{ color: '#DC2626', borderColor: '#DC2626' }} onClick={handleDeleteSelected}>
+                            Excluir Selecionados ({selectedIds.length})
+                        </button>
+                    )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-outline" style={{ color: '#9CA3AF' }} onClick={handleClearAll}>
+                        Limpar Tudo
+                    </button>
                     <button className="btn btn-outline" onClick={syncSystemsFromAPI} disabled={isSyncingAPI}>
-                        <RefreshCw size={15} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando...' : 'Sincronizar Todos'}
+                        <RefreshCw size={15} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando...' : `Sincronizar ${currentPlatform || 'Todos'}`}
                     </button>
                     <button className="btn btn-outline" onClick={handleFetchSystems} disabled={isImporting}>
-                        <Zap size={15} color="#F59E0B" /> Importar da API
+                        <Zap size={15} color="#F59E0B" /> {isImporting ? 'Buscando...' : `Importar ${currentPlatform || 'API'}`}
                     </button>
+                    {currentPlatform === 'APsystems' && setShowXLSImportModal && (
+                        <button className="btn btn-outline" style={{ borderColor: '#6366F1', color: '#6366F1' }} onClick={() => setShowXLSImportModal(true)}>
+                            <Plus size={15} /> Importar XLS
+                        </button>
+                    )}
                     <button className="btn btn-outline" onClick={handleBatchExport} disabled={isUploading}>
                         <FileArchive size={15} /> {isUploading ? 'ZIP...' : 'Exportar ZIP'}
                     </button>
@@ -62,7 +98,9 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                     <table>
                         <thead>
                             <tr>
-                                <th style={{ width: 36 }}><input type="checkbox" /></th>
+                                <th style={{ width: 36 }}>
+                                    <input type="checkbox" checked={allSelected} onChange={handleSelectAll} />
+                                </th>
                                 <th>Cliente</th><th>Cidade / Local</th><th>Geração Total</th><th>Hoje</th><th>Data Inst.</th><th>Status ECU</th><th>Competência</th><th style={{ width: 48 }}>PDF</th>
                             </tr>
                         </thead>
@@ -70,8 +108,15 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                             {filteredClients.length === 0 ? (
                                 <tr><td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--color-text-muted)' }}>Nenhum sistema encontrado.</td></tr>
                             ) : filteredClients.map(ac => (
-                                <tr key={ac.id} onClick={() => setSelectedClientId(ac.id)} style={{ cursor: 'pointer' }}>
-                                    <td><input type="checkbox" onClick={e => e.stopPropagation()} /></td>
+                                <tr key={ac.id} onClick={() => setSelectedClientId(ac.id)} style={{ cursor: 'pointer', background: selectedIds.includes(ac.id) ? '#F5F3FF' : 'transparent' }}>
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.includes(ac.id)}
+                                            onChange={() => toggleSelect(ac.id)}
+                                            onClick={e => e.stopPropagation()}
+                                        />
+                                    </td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#6366F1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '13px' }}>
@@ -84,18 +129,20 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 500, fontSize: '13px' }}>{(ac as any).city || '—'}</div>
+                                        <div style={{ fontWeight: 500, fontSize: '13px' }}>
+                                            {ac.city || 'Cidade não inf.'}
+                                        </div>
                                         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>UC {ac.uc}</div>
                                     </td>
                                     <td>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : 'API pendente'}</td>
-                                    <td style={{ fontWeight: 700, color: (ac as any).energy_today > 0 ? '#10B981' : 'var(--color-text-muted)' }}>
-                                        {(ac as any).energy_today ? `${(ac as any).energy_today.toFixed(1)} kWh` : '—'}
+                                    <td style={{ fontWeight: 700, color: (ac.energy_today || 0) > 0 ? '#10B981' : 'var(--color-text-muted)' }}>
+                                        {ac.energy_today ? `${ac.energy_today.toFixed(1)} kWh` : '—'}
                                     </td>
                                     <td style={{ fontSize: '12px' }}>{ac.activation_date ? new Date(ac.activation_date).toLocaleDateString('pt-BR') : '—'}</td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: (ac as any).api_status === 'Normal' ? '#10B981' : (ac as any).api_status === 'Atenção' ? '#F59E0B' : '#DC2626' }}></div>
-                                            <span style={{ fontSize: '12px', fontWeight: 500 }}>{(ac as any).api_status || 'Offline'}</span>
+                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: ac.api_status === 'Normal' ? '#10B981' : ac.api_status === 'Atenção' ? '#F59E0B' : '#DC2626' }}></div>
+                                            <span style={{ fontSize: '12px', fontWeight: 500 }}>{ac.api_status || 'Offline'}</span>
                                         </div>
                                     </td>
                                     <td>

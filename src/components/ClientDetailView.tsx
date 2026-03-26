@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, Download, Sun, TrendingUp, BarChart2, Clock, Edit3, Save, X, History, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { ActiveClient } from '../App';
+import { ActiveClient } from '../utils/solarHelpers';
 import { Bill } from '../hooks/useBills';
 
 interface ClientDetailViewProps {

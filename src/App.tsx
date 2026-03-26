@@ -3,7 +3,9 @@ import { Search, Bell, RefreshCw, FileText, Plus } from 'lucide-react';
 import JSZip from 'jszip';
 import { supabase } from './lib/supabase';
 import { useAuth } from './contexts/AuthContext';
+import { APsystemsEnergyService } from './lib/services/apsystemsEnergy';
 import { useClients, Client } from './hooks/useClients';
+import { useSystems, System } from './hooks/useSystems';
 import { useBills, Bill } from './hooks/useBills';
 import { logAuditEvent } from './hooks/useAuditLog';
 import { parseFaturaPDF } from './utils/pdfParser';
@@ -14,54 +16,16 @@ import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
 import ClientsListView from './components/ClientsListView';
 import ClientDetailView from './components/ClientDetailView';
-import { NewClientModal, ImportModal } from './components/Modals';
+import { NewClientModal, ImportModal, XLSImportModal } from './components/Modals';
+import { MappedSystem } from './utils/xlsImporter';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-export type ActiveClient = Client & {
-    generation: number;
-    latestBill: Bill | null;
-    status: 'Completo' | 'Divergente' | 'Incompleto';
-    energy_today?: number;
-    api_status?: string;
-};
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-function clientStatus(bill: Bill | null): 'Completo' | 'Divergente' | 'Incompleto' {
-    if (!bill) return 'Incompleto';
-    if ((bill.confidence ?? 1) < 0.8) return 'Divergente';
-    return 'Completo';
-}
-
-export function calcStats(gen: number, bill: Bill, investment: number) {
-    const injected = bill.injected_energy;
-    const selfConsumption = Math.max(0, gen - injected);
-    const totalConsumption = bill.consumption + selfConsumption;
-    const tarifaMedia = bill.total_value / (bill.consumption || 1);
-    const economyValue = gen * tarifaMedia;
-    const reductionPercent = (economyValue / (bill.total_value + economyValue)) * 100;
-    const payback = investment / (economyValue * 12 || 1);
-    const roi = investment > 0 ? (economyValue * 12 / investment) * 100 : 0;
-    return {
-        economyValue,
-        annualEconomy: economyValue * 12,
-        reductionPercent: reductionPercent.toFixed(0),
-        payback: payback.toFixed(1),
-        roi: roi.toFixed(1),
-        totalConsumption,
-    };
-}
-
-async function apsFetch(payload: { action: 'list' | 'stats' | 'details'; system_id?: string; page?: number; size?: number }) {
-    const { data, error } = await supabase.functions.invoke('aps-proxy-deep-sync', {
-        body: { ...payload, size: payload.size || 100 }
-    });
-    if (error || !data?.success) throw new Error(data?.error || 'Erro na conexão com AP-Deep-Sync');
-    return data;
-}
+import { ActiveClient, calcStats, clientStatus } from './utils/solarHelpers';
+import { getProvider } from './lib/providers';
 
 function App() {
     const { user, signOut } = useAuth();
     const { clients, loading: clientsLoading, refetch: refetchClients, create: createClient, update: updateClient, remove: removeClient } = useClients();
+    const { systems, refetch: refetchSystems, upsert: upsertSystem } = useSystems();
     const { bills, create: createBill, update: updateBill } = useBills();
 
     const [activeTab, setActiveTab] = useState('Dashboard');
@@ -80,6 +44,8 @@ function App() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [syncProgress, setSyncProgress] = useState(0);
     const [syncTotal, setSyncTotal] = useState(0);
+    const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+    const [showXLSImportModal, setShowXLSImportModal] = useState(false);
 
     const billMap = useMemo(() => {
         const map = new Map<string, Bill>();
@@ -92,104 +58,68 @@ function App() {
         return map;
     }, [bills]);
 
+    const currentProvider = useMemo(() => {
+        if (['APsystems', 'Sungrow', 'GoodWe'].includes(activeTab)) {
+            return getProvider(activeTab);
+        }
+        return getProvider('APsystems'); // Fallback
+    }, [activeTab]);
+
     const syncSystemsFromAPI = async () => {
         setIsSyncingAPI(true);
         setSyncProgress(0);
-        console.log("[SYNC STATUS] Iniciando sincronização profunda com APsystems...");
+        console.log(`[SYNC STATUS] Iniciando sincronização profunda com ${currentProvider.name}...`);
 
         try {
-            const apiRes = await apsFetch({ action: 'list', page: 1, size: 200 });
-            const listResult = apiRes?.data;
-            console.log("[API RESPONSE] Dados recebidos:", listResult);
-
-            if (listResult?.code === 4000) {
-                console.warn("[API WARNING] Falha de Assinatura/Autenticação (4000). Verifique as credenciais da APsystems.");
-                console.log("[SIGNATURE DEBUG INFO]", apiRes?.audit);
+            // ESPECIAL: APsystems Refatorado (Módulo 6)
+            if (activeTab === 'APsystems') {
+                const result = await APsystemsEnergyService.syncEnergyData();
+                await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, { count: result.total_processados, platform: 'APsystems' });
+                alert(`Sincronização APsystems concluída!\nSucesso: ${result.sucesso}\nFalhas: ${result.falhas}\nTempo: ${result.tempo_execucao}s`);
+                refetchSystems();
                 setIsSyncingAPI(false);
                 return;
             }
 
-            let systemsResult: any[] = [];
-
-            // Debug log para identificar o formato real da resposta
-            console.log("[Deep Sync] Raw List Result:", listResult);
-
-            const deepData = listResult?.data?.data || listResult?.data || listResult;
-
-            if (Array.isArray(deepData)) {
-                systemsResult = deepData;
-            } else {
-                systemsResult = deepData?.systems || deepData?.data?.systems || deepData?.list || deepData?.data?.list || [];
-            }
+            // OUTRAS PLATAFORMAS (Legado mantido por enquanto)
+            const systemsResult = await currentProvider.importSystems();
 
             if (systemsResult.length === 0) {
-                const errorCode = listResult?.code || deepData?.code;
-                const errorMsg = listResult?.msg || deepData?.msg;
-                console.warn(`[Deep Sync] Nenhum sistema encontrado. Code: ${errorCode}, Msg: ${errorMsg}`);
-
-                if (errorCode && errorCode !== "0" && errorCode !== 0) {
-                    throw new Error(`API APsystems retornou erro ${errorCode}: ${errorMsg || 'Sem mensagem'}`);
-                }
-                setIsSyncingAPI(false);
-                return;
-            }
-
-            if (systemsResult.length > 10 && !confirm(`Encontrados ${systemsResult.length} sistemas. Deseja iniciar a sincronização profunda agora?`)) {
+                console.warn(`[Deep Sync] Nenhum sistema encontrado para ${currentProvider.name}.`);
                 setIsSyncingAPI(false);
                 return;
             }
 
             setSyncTotal(systemsResult.length);
-            console.log(`[Deep Sync] Iniciando sincronização de ${systemsResult.length} sistemas...`);
-
             let count = 0;
             for (const sys of systemsResult) {
                 count++;
                 setSyncProgress(count);
 
-                const sid = sys?.sid || sys?.id || sys?.systemId || sys?.system_id;
+                const sid = (sys?.sid || sys?.id || sys?.systemId || sys?.system_id || '').toString();
+                const ecuId = (sys?.ecuId || sys?.ecu?.[0] || sys?.ecu_id || '').toString();
+
                 if (!sid) continue;
 
                 let details: any = null;
-                try {
-                    const detailRes = await apsFetch({ action: 'details', system_id: sid });
-                    details = detailRes?.data?.data || detailRes?.data || detailRes;
-                } catch (e) { console.warn(`[API WARNING] Falha detalhes do sistema ${sid}`); }
+                try { details = await currentProvider.getSystemDetails(sid, ecuId); } catch (e) { }
 
                 let stats: any = null;
                 try {
-                    const statsRes = await apsFetch({ action: 'stats', system_id: sid });
-                    stats = statsRes?.data?.data || statsRes?.data || statsRes;
-                } catch (e) { console.warn(`[API WARNING] Falha estatísticas para ${sid}`); }
-
-                // Mapeamento Robusto (GULOSO)
-                const name = details?.sname || details?.username || sys?.sname || sys?.username || `Usina ${sid}`;
-                const city = details?.city || details?.cityName || sys?.city || 'Brasil';
-                const state = details?.state || details?.province || sys?.state || '—';
-                const capacity = parseFloat(details?.capacity || sys?.capacity || '0');
-
-                // Geração Total (GULOSO)
-                const generation = parseFloat(stats?.energyTotal || stats?.energy || stats?.data?.energyTotal || sys?.energy_total || '0');
-                const energyToday = parseFloat(stats?.energyToday || stats?.todayEnergy || '0');
+                    if ((currentProvider as any).getSystemStats) {
+                        stats = await (currentProvider as any).getSystemStats(sid);
+                    }
+                } catch (e) { }
 
                 const existing = (clients || []).find(c => c?.system_id === sid);
-                const metaData: any = {
-                    name, city, state, country: details?.country || 'Brasil',
-                    ecu_id: Array.isArray(details?.ecu) ? details.ecu[0] : (details?.ecuId || details?.data?.ecu?.[0] || null),
-                    system_size: capacity, system_type: details?.type || 'Fotovoltaico',
-                    activation_date: details?.createDate || sys?.create_date || null,
-                    api_status: (details?.light || sys?.light) === 1 ? 'Normal' : (details?.light || sys?.light) === 2 ? 'Atenção' : 'Erro',
-                    last_generation: generation,
-                    energy_today: energyToday,
-                    last_api_sync: new Date().toISOString()
-                };
+                const metadata = currentProvider.mapResponseToMetadata(details, stats?.data, sys, existing?.city);
 
-                if (existing) await updateClient(existing.id, metaData);
-                else await createClient({ ...metaData, uc: `ID_${sid}`, platform: 'APsystems', system_id: sid, investment: 0 });
+                if (existing) await updateClient(existing.id, metadata);
+                else await createClient({ ...metadata as any, uc: `ID_${sid}`, platform: currentProvider.platform, system_id: sid, investment: 0 });
             }
 
-            await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, { count: systemsResult.length });
-            alert(`Sincronização de ${systemsResult.length} sistemas concluída!`);
+            await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, { count: systemsResult.length, platform: currentProvider.platform });
+            alert(`Sincronização de ${systemsResult.length} sistemas (${currentProvider.name}) concluída!`);
             refetchClients();
         } catch (err: any) {
             console.error("[SYNC STATUS] Erro crítico:", err.message);
@@ -203,12 +133,7 @@ function App() {
     const handleFetchSystems = async () => {
         setIsImporting(true);
         try {
-            const result = await apsFetch({ action: 'list', page: 1, size: 200 });
-            let systems = [];
-            if (Array.isArray(result)) systems = result;
-            else if (result?.list) systems = result.list;
-            else if (result?.data?.list) systems = result.data.list;
-            else if (result?.data?.systems) systems = result.data.systems;
+            const systems = await currentProvider.importSystems();
             setImportList(systems);
             setShowImportModal(true);
         } catch (err: any) { alert(`Erro: ${err.message}`); }
@@ -217,12 +142,23 @@ function App() {
 
     const handleImportSystem = async (sys: any) => {
         const id = sys.sid || sys.id || sys.systemId || sys.system_id;
-        const name = sys.username || sys.customerAccount || sys.userAccount || sys.sname || sys.name || `Usina ${id}`;
+
+        const metadata = currentProvider.mapResponseToMetadata(null, null, sys);
+        const name = metadata.name || `Usina ${id}`;
+        const city = metadata.city || 'Cidade não inf.';
 
         if (clients.some(c => c.system_id === id)) return alert(`Já cadastrado.`);
 
         try {
-            await createClient({ name, uc: `PENDENTE_${id}`, platform: 'APsystems', system_id: id, investment: 0 });
+            await createClient({
+                ...metadata as any,
+                name,
+                city,
+                uc: `PENDENTE_${id}`,
+                platform: currentProvider.platform,
+                system_id: id,
+                investment: 0
+            });
             setImportList(prev => prev.filter(s => (s.sid || s.id || s.systemId || s.system_id) !== id));
             refetchClients();
         } catch (err: any) { alert(`Erro: ${err.message}`); }
@@ -245,9 +181,20 @@ function App() {
             count++;
             setSyncProgress(count);
             const id = sys.sid || sys.id || sys.systemId || sys.system_id;
-            const name = sys.username || sys.customerAccount || sys.userAccount || sys.sname || sys.name || `Usina ${id}`;
+            const metadata = currentProvider.mapResponseToMetadata(null, null, sys);
+            const name = metadata.name || `Usina ${id}`;
+            const city = metadata.city || 'Cidade não inf.';
+
             try {
-                await createClient({ name, uc: `PENDENTE_${id}`, platform: 'APsystems', system_id: id, investment: 0 });
+                await createClient({
+                    ...metadata as any,
+                    name,
+                    city,
+                    uc: `PENDENTE_${id}`,
+                    platform: currentProvider.platform,
+                    system_id: id,
+                    investment: 0
+                });
             } catch (e) { console.error(`Falha ao importar ${id}`, e); }
         }
 
@@ -258,8 +205,48 @@ function App() {
         refetchClients();
     };
 
-    const enrichedClients = useMemo(() =>
-        clients.map(c => {
+    const handleXLSImportComplete = async (incomingSystems: MappedSystem[]) => {
+        setIsSyncingAPI(true);
+        setSyncTotal(incomingSystems.length);
+        let count = 0;
+        let success = 0;
+
+        for (const sys of incomingSystems) {
+            count++;
+            setSyncProgress(count);
+
+            const systemData = {
+                sid: sys.sid,
+                cliente: sys.cliente,
+                account: sys.account,
+                cidade: sys.cidade,
+                estado: sys.estado,
+                pais: sys.pais,
+                potencia_kwp: sys.potencia_kwp,
+                tipo: sys.tipo,
+                tem_meter: sys.tem_meter,
+                data_instalacao: sys.data_instalacao,
+                status: sys.status,
+                fonte: sys.fonte,
+            };
+
+            try {
+                await upsertSystem(systemData);
+                success++;
+            } catch (err) {
+                console.error(`Falha ao importar sistema XLS ${sys.sid}:`, err);
+            }
+        }
+
+        setIsSyncingAPI(false);
+        setSyncProgress(0);
+        setShowXLSImportModal(false);
+        alert(`${success} sistemas processados via XLS com sucesso!`);
+        refetchSystems();
+    };
+
+    const enrichedClients = useMemo(() => {
+        const platformClients = clients.map(c => {
             const bill = billMap.get(c.id) || null;
             return {
                 ...c,
@@ -267,14 +254,47 @@ function App() {
                 latestBill: bill,
                 status: clientStatus(bill),
             } as ActiveClient;
-        }), [clients, billMap]);
+        });
+
+        const appSystemsOnly = systems.map(s => {
+            return {
+                id: s.id,
+                name: s.cliente,
+                uc: 'PENDENTE', // Systems from XLS don't have UC yet
+                platform: 'APsystems',
+                system_id: s.sid,
+                city: s.cidade || '—',
+                state: s.estado || '—',
+                country: s.pais || '—',
+                system_size: s.potencia_kwp || 0,
+                activation_date: s.data_instalacao,
+                api_status: s.status === 'normal' ? 'Normal' : s.status === 'alerta' ? 'Atenção' : 'Erro',
+                generation: 0,
+                latestBill: null,
+                status: 'Incompleto',
+                source: s.fonte || 'apsystems_xls',
+            } as any as ActiveClient;
+        });
+
+        // Mix clients from clients table + the new systems table
+        // Filter out those from systems table that might already exist in clients by system_id
+        const filteredSystems = appSystemsOnly.filter(s => !platformClients.some(pc => pc.system_id === s.system_id));
+
+        return [...platformClients, ...filteredSystems];
+    }, [clients, systems, billMap]);
 
     const filteredClients = useMemo(() =>
         enrichedClients.filter(c => {
             const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.uc.includes(searchTerm);
             const matchStatus = statusFilter === 'Todos' || c.status === statusFilter;
+
+            // Filtro por plataforma se estiver em uma aba de plataforma
+            if (['APsystems', 'Sungrow', 'GoodWe'].includes(activeTab)) {
+                if (c.platform !== activeTab) return false;
+            }
+
             return matchSearch && matchStatus;
-        }), [enrichedClients, searchTerm, statusFilter]);
+        }), [enrichedClients, searchTerm, statusFilter, activeTab]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
@@ -348,6 +368,32 @@ function App() {
         } catch (err: any) { alert(`Erro: ${err.message}`); }
     };
 
+    const handleDeleteSelected = async () => {
+        if (!selectedClientIds.length) return;
+        if (!confirm(`Deseja excluir os ${selectedClientIds.length} sistemas selecionados?`)) return;
+        try {
+            for (const id of selectedClientIds) {
+                await removeClient(id);
+            }
+            setSelectedClientIds([]);
+            refetchClients();
+            alert("Sistemas excluídos com sucesso.");
+        } catch (err: any) { alert(`Erro ao excluir: ${err.message}`); }
+    };
+
+    const handleClearAll = async () => {
+        if (!clients.length) return;
+        if (!confirm("⚠️ ATENÇÃO: Deseja excluir TODOS os sistemas do seu banco de dados? Esta ação não pode ser desfeita.")) return;
+        try {
+            for (const c of clients) {
+                await removeClient(c.id);
+            }
+            setSelectedClientIds([]);
+            refetchClients();
+            alert("Base de dados limpa.");
+        } catch (err: any) { alert(`Erro ao limpar: ${err.message}`); }
+    };
+
     const selectedAC = enrichedClients.find(c => c.id === selectedClientId) ?? null;
     const selectedBill = selectedAC?.latestBill ?? null;
     const selectedStats = selectedAC && selectedBill ? calcStats(selectedAC.generation, selectedBill, (selectedAC as any).investment ?? 0) : null;
@@ -361,6 +407,13 @@ function App() {
             }} form={newClientForm} setForm={setNewClientForm} loading={isSavingClient} />
 
             <ImportModal show={showImportModal} setShow={setShowImportModal} list={importList} onImport={handleImportSystem} onImportAll={handleImportAll} />
+
+            <XLSImportModal
+                show={showXLSImportModal}
+                setShow={setShowXLSImportModal}
+                existingSids={systems.map(s => s.sid)}
+                onImportComplete={handleXLSImportComplete}
+            />
 
             <Sidebar
                 user={user as any} activeTab={activeTab} setActiveTab={setActiveTab}
@@ -377,7 +430,11 @@ function App() {
             <main className="main-content">
                 {!selectedClientId && (
                     <header className="topbar">
-                        <h2 className="text-page-title">{activeTab === 'Dashboard' ? 'Dashboard' : activeTab === 'Clients' ? 'Sistemas Ativos' : 'Central de Faturas'}</h2>
+                        <h2 className="text-page-title">
+                            {activeTab === 'Dashboard' ? 'Dashboard' :
+                                activeTab === 'Bills' ? 'Central de Faturas' :
+                                    `Sistemas ${activeTab}`}
+                        </h2>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <div style={{ position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
@@ -440,8 +497,15 @@ function App() {
                             handleFetchSystems={handleFetchSystems} isImporting={isImporting}
                             handleBatchExport={handleBatchExport} isUploading={isUploading}
                             setShowNewClientModal={setShowNewClientModal}
-                            filteredClients={filteredClients} setSelectedClientId={setSelectedClientId}
+                            filteredClients={filteredClients}
+                            selectedIds={selectedClientIds}
+                            setSelectedIds={setSelectedClientIds}
+                            handleDeleteSelected={handleDeleteSelected}
+                            handleClearAll={handleClearAll}
+                            setSelectedClientId={setSelectedClientId}
                             handleExportPDF={handleExportPDF}
+                            currentPlatform={['APsystems', 'Sungrow', 'GoodWe'].includes(activeTab) ? (activeTab as any) : undefined}
+                            setShowXLSImportModal={setShowXLSImportModal}
                         />
                     )}
                 </div>

@@ -56,18 +56,35 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <>
                         {[
                             { tab: 'Dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-                            { tab: 'Clients', icon: <Users size={18} />, label: 'Sistemas', badge: clientsCount },
-                            { tab: 'Bills', icon: <FileText size={18} />, label: 'Faturas' },
-                        ].map(({ tab, icon, label, badge }) => (
+                        ].map(({ tab, icon, label }) => (
                             <a key={tab} href="#" className={`nav-item ${activeTab === tab ? 'active' : ''}`}
                                 onClick={e => { e.preventDefault(); setActiveTab(tab); }}>
                                 {icon}
                                 <span className="text-nav-item">{label}</span>
-                                {badge !== undefined && (
-                                    <span style={{ marginLeft: 'auto', fontSize: '11px', background: activeTab === tab ? 'rgba(255,255,255,0.2)' : '#EEF2FF', color: activeTab === tab ? '#fff' : '#6366F1', padding: '1px 6px', borderRadius: '999px', fontWeight: 600 }}>
-                                        {badge}
-                                    </span>
-                                )}
+                            </a>
+                        ))}
+
+                        <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Integradores</div>
+                        {[
+                            { tab: 'APsystems', icon: <Sun size={18} />, label: 'APsystems' },
+                            { tab: 'Sungrow', icon: <Sun size={18} />, label: 'Sungrow' },
+                            { tab: 'GoodWe', icon: <Sun size={18} />, label: 'GoodWe' },
+                        ].map(({ tab, icon, label }) => (
+                            <a key={tab} href="#" className={`nav-item ${activeTab === tab ? 'active' : ''}`}
+                                onClick={e => { e.preventDefault(); setActiveTab(tab); }}>
+                                {icon}
+                                <span className="text-nav-item">{label}</span>
+                            </a>
+                        ))}
+
+                        <div className="text-nav-label-group" style={{ marginTop: '20px' }}>Operacional</div>
+                        {[
+                            { tab: 'Bills', icon: <FileText size={18} />, label: 'Faturas' },
+                        ].map(({ tab, icon, label }) => (
+                            <a key={tab} href="#" className={`nav-item ${activeTab === tab ? 'active' : ''}`}
+                                onClick={e => { e.preventDefault(); setActiveTab(tab); }}>
+                                {icon}
+                                <span className="text-nav-item">{label}</span>
                             </a>
                         ))}
                     </>
