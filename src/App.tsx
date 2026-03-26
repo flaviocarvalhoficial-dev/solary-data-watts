@@ -719,7 +719,6 @@ function App() {
                             isSyncingAPI={isSyncingAPI}
                             syncProgress={syncProgress}
                             syncTotal={syncTotal}
-                            selectedCompetency={selectedCompetency}
                         />
                     ) : activeTab === 'Bills' ? (
                         <div className="empty-state">
