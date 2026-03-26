@@ -82,17 +82,36 @@ function App() {
     const [syncTotal, setSyncTotal] = useState(0);
     const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
     const [showXLSImportModal, setShowXLSImportModal] = useState(false);
+    const availableCompetencies = useMemo(() => {
+        const set = new Set<string>();
+        bills.forEach(b => {
+            if (b.competency) set.add(b.competency);
+        });
+        return Array.from(set).sort().reverse();
+    }, [bills]);
+
+    const [selectedCompetency, setSelectedCompetency] = useState<string>('');
+
+    // Update selectedCompetency when bills are loaded for the first time
+    React.useEffect(() => {
+        if (!selectedCompetency && availableCompetencies.length > 0) {
+            setSelectedCompetency(availableCompetencies[0]);
+        }
+    }, [availableCompetencies]);
 
     const billMap = useMemo(() => {
         const map = new Map<string, Bill>();
-        bills.forEach(b => {
+        // Filter bills by selectedCompetency
+        const filteredBills = bills.filter(b => b.competency === selectedCompetency);
+
+        filteredBills.forEach(b => {
             const existing = map.get(b.client_id);
             if (!existing || (b.created_at ?? '') > (existing.created_at ?? '')) {
                 map.set(b.client_id, b);
             }
         });
         return map;
-    }, [bills]);
+    }, [bills, selectedCompetency]);
 
     const currentProvider = useMemo(() => {
         if (['APsystems', 'Sungrow', 'GoodWe'].includes(activeTab)) {
@@ -619,17 +638,44 @@ function App() {
                                 activeTab === 'Bills' ? 'Central de Faturas' :
                                     `Sistemas ${activeTab}`}
                         </h2>
+
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {/* Search */}
                             <div style={{ position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-                                <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                                    style={{ width: '200px', padding: '8px 12px 8px 34px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '13px' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    style={{ width: '200px', padding: '8px 12px 8px 34px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '13px' }}
+                                />
                             </div>
-                            <button onClick={refetchClients} className="btn-icon"><RefreshCw size={18} /></button>
-                            <button className="btn-icon" style={{ position: 'relative' }}>
-                                <Bell size={20} />
-                                {enrichedClients.filter(c => c.status === 'Incompleto').length > 0 && <div className="badge-dot" />}
-                            </button>
+
+                            {/* Competency Filter */}
+                            {availableCompetencies.length > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-bg-sidebar)', padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Período</span>
+                                    <select
+                                        value={selectedCompetency}
+                                        onChange={(e) => setSelectedCompetency(e.target.value)}
+                                        style={{ border: 'none', background: 'none', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)', cursor: 'pointer', outline: 'none' }}
+                                    >
+                                        {availableCompetencies.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Global Actions */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button onClick={refetchClients} className="btn-icon"><RefreshCw size={18} /></button>
+                                <button className="btn-icon" style={{ position: 'relative' }}>
+                                    <Bell size={20} />
+                                    {enrichedClients.filter(c => c.status === 'Incompleto').length > 0 && <div className="badge-dot" />}
+                                </button>
+                            </div>
                         </div>
                     </header>
                 )}
@@ -650,6 +696,10 @@ function App() {
                             isUploading={isUploading}
                             branding={branding}
                             handleResetData={handleResetClientData}
+                            selectedCompetency={selectedCompetency}
+                            setSelectedCompetency={setSelectedCompetency}
+                            availableCompetencies={availableCompetencies}
+                            clientBills={bills.filter(b => b.client_id === selectedAC.id)}
                         />
                     ) : activeTab === 'Settings' ? (
                         <SettingsView user={user} branding={branding} setBranding={setBranding} />
@@ -669,6 +719,7 @@ function App() {
                             isSyncingAPI={isSyncingAPI}
                             syncProgress={syncProgress}
                             syncTotal={syncTotal}
+                            selectedCompetency={selectedCompetency}
                         />
                     ) : activeTab === 'Bills' ? (
                         <div className="empty-state">
