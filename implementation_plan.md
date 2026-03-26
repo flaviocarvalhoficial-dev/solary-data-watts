@@ -1,4 +1,4 @@
-# Implementation Plan — Solary Data MVP
+# Implementation Plan — Watts MVP
 
 ## 1. Context & Objective
 Migrate the mock-based prototype to a solid production-ready application using Supabase for persistence, real-time calculations, and batch PDF generation.

@@ -207,3 +207,11 @@ export const findCityDeep = (obj: any): string | null => {
     }
     return null;
 };
+
+export const getEmaPortalLink = (client: ActiveClient): string | null => {
+    if (client.platform === 'APsystems' && client.system_id) {
+        return `https://apsystemsema.com/ema/security/optmainmenu/intoViewSingleCustomerBelowInstaller.action?userId=2c9f95c79998f69101999b30ca435e5f&ecuId=${client.system_id}&Ecuremark=1&viewDirectFlag=&viewPartnerFlag=&clickFlag=3`;
+    }
+    // Adicione mais plataformas conforme necessário
+    return null;
+};

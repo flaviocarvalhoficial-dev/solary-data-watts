@@ -20,9 +20,9 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
 
     // Fallbacks
     const primaryColor = branding?.primary_color || '#6366F1';
-    const companyName = branding?.company_name || 'SOLARY DATA';
+    const companyName = branding?.company_name || 'WATTS';
     const logoUrl = branding?.logo_url || null;
-    const reportFooter = branding?.report_footer || 'Este relatório foi gerado automaticamente pelo sistema Solary Data.';
+    const reportFooter = branding?.report_footer || 'Este relatório foi gerado automaticamente pelo sistema Watts.';
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -202,7 +202,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '10px', fontSize: '10px', color: '#D1D5DB' }}>
                     <span>Modo: {data.modo_relatorio.toUpperCase()}</span>
                     <span>Fonte Fatura: OCR PARSER v2</span>
-                    <span>© 2026 Solary Data</span>
+                    <span>© 2026 Watts</span>
                 </div>
             </footer>
         </div>

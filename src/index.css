@@ -10,7 +10,7 @@
 
 :root {
     /* Cores Base - Design System Veselty Inc. */
-    --color-bg-base: #F5F5F0;
+    --color-bg-base: #f3f3f3;
     --color-bg-surface: #FFFFFF;
     --color-bg-sidebar: #FFFFFF;
     --color-primary: #E8593C;
@@ -71,6 +71,14 @@ body {
 
 #root {
     height: 100vh;
+}
+
+.text-logo-handwritten {
+    font-family: 'Caveat', cursive;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: -0.02em;
 }
 
 /* Base styles / Layout */
@@ -300,7 +308,8 @@ body {
     background: var(--color-bg-surface);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
-    overflow: hidden;
+    /* overflow: hidden foi removido para permitir tooltips. 
+       Se necessário, o clipping deve ser feito em elementos internos. */
 }
 
 table {
@@ -385,4 +394,225 @@ tr:hover {
     background: #EF4444;
     border-radius: 50%;
     border: 1.5px solid #fff;
+}
+
+/* Animations for Performance Analysis */
+@keyframes growUp {
+    from {
+        height: 0;
+        opacity: 0;
+    }
+
+    to {
+        height: var(--target-height);
+        opacity: 1;
+    }
+}
+
+.animate-bar {
+    animation: growUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes drawLine {
+    from {
+        stroke-dashoffset: 1200;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes fadeInArea {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 0.15;
+    }
+}
+
+.chart-path-smooth {
+    stroke-dasharray: 1200;
+    stroke-dashoffset: 1200;
+    animation: drawLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.chart-area-smooth {
+    opacity: 0;
+    animation: fadeInArea 2s ease-out 0.5s forwards;
+}
+
+/* Tooltip Styles - Veselty Inc. */
+[data-tooltip] {
+    position: relative;
+    cursor: default;
+}
+
+[data-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translate(-50%, -8px) scale(0.95);
+    background: #FDECEA;
+    color: #4A4A4A;
+    /* Cinza Escuro */
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: pre-wrap;
+    width: max-content;
+    max-width: 220px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: none;
+    /* Sem sombra */
+    text-align: center;
+    line-height: 1.5;
+    border: none;
+    /* Sem borda */
+}
+
+[data-tooltip]::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translate(-50%, 0px);
+    border-width: 8px 6px 0 6px;
+    border-style: solid;
+    border-color: #FDECEA transparent transparent transparent;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+[data-tooltip]:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -8px) scale(1);
+    transition-delay: 0.1s;
+}
+
+[data-tooltip]:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -8px);
+    transition-delay: 0.1s;
+}
+
+/* Onboarding & Welcome Animations */
+@keyframes onboardFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes onboardScaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.onboarding-screen {
+    position: fixed;
+    inset: 0;
+    background: #FFFFFF;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    animation: onboardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.onboarding-hero {
+    margin-bottom: 48px;
+}
+
+.onboarding-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+}
+
+.onboarding-subtitle {
+    font-size: 16px;
+    color: var(--color-text-secondary);
+    max-width: 540px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+}
+
+.onboarding-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 960px;
+    margin-bottom: 48px;
+}
+
+.onboarding-card {
+    background: var(--color-bg-base);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+    text-align: left;
+}
+
+.onboarding-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-4px);
+    background: #FFFFFF;
+    box-shadow: 0 12px 24px rgba(232, 89, 60, 0.08);
+}
+
+.onboarding-card-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--color-primary-muted);
+    color: var(--color-primary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.onboarding-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--color-text-primary);
+}
+
+.onboarding-card-text {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
 }

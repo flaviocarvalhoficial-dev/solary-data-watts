@@ -1,9 +1,11 @@
 import React from 'react';
 import {
     Sun, LayoutDashboard, FileText, ChevronLeft,
-    Download, Edit3, X, LogOut, Settings as SettingsIcon
+    Download, Edit3, X, LogOut, Settings as SettingsIcon,
+    ChevronDown, ChevronRight
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import WattsMascot from './WattsMascot';
 
 interface SidebarProps {
     user: User | null;
@@ -18,6 +20,8 @@ interface SidebarProps {
     handleStartEdit: () => void;
     removeClient: (id: string) => Promise<void>;
     selectedAC: any;
+    platformFilter: string;
+    setPlatformFilter: (tab: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -32,19 +36,20 @@ const Sidebar: React.FC<SidebarProps> = ({
     handleExportPDF,
     handleStartEdit,
     removeClient,
-    selectedAC
+    selectedAC,
+    platformFilter,
+    setPlatformFilter
 }) => {
+    const [isFleetExpanded, setIsFleetExpanded] = React.useState(true);
     const userInitial = (user?.email || 'A').charAt(0).toUpperCase();
     const userName = user?.user_metadata?.full_name || user?.email || 'Admin';
 
     return (
         <aside className="sidebar">
             {/* Logo Section */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', marginBottom: '24px' }}>
-                <div style={{ padding: '6px', background: 'rgba(232,89,60, 0.12)', borderRadius: '8px', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sun size={20} fill="currentColor" strokeWidth={2.5} />
-                </div>
-                <h1 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--color-text-primary)' }}>Solary Data</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '12px 8px', marginBottom: '24px' }}>
+                <WattsMascot state="normal" size={28} />
+                <h1 className="text-logo-handwritten" style={{ fontSize: '24px', lineHeight: 1, marginLeft: '2px' }}>Watts</h1>
             </div>
 
             {/* Navigation Groups */}
@@ -58,16 +63,31 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </a>
                 </nav>
 
-                <div className="sidebar-group-label" style={{ padding: '0 12px', marginBottom: '8px' }}>Integradores</div>
-                <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
-                    {['APsystems', 'Sungrow', 'GoodWe'].map(tab => (
-                        <a key={tab} href="#" className={`sidebar-item ${activeTab === tab && !selectedClientId ? 'active' : ''}`}
-                            onClick={e => { e.preventDefault(); setActiveTab(tab); setSelectedClientId(null); }}>
+                <div
+                    onClick={() => setIsFleetExpanded(!isFleetExpanded)}
+                    className="sidebar-group-label"
+                    style={{ padding: '0 12px', marginBottom: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                    Gestão de Frota
+                    {isFleetExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </div>
+
+                {isFleetExpanded && (
+                    <nav className="sidebar-group" style={{ marginBottom: '24px' }}>
+                        <a href="#" className={`sidebar-item ${activeTab === 'Fleet' && platformFilter === 'Todas' && !selectedClientId ? 'active' : ''}`}
+                            onClick={e => { e.preventDefault(); setActiveTab('Fleet'); setPlatformFilter('Todas'); setSelectedClientId(null); }}>
                             <Sun size={17} />
-                            <span>{tab}</span>
+                            <span>Visão Geral</span>
                         </a>
-                    ))}
-                </nav>
+                        {['APsystems', 'Sungrow', 'GoodWe'].map(p => (
+                            <a key={p} href="#" className={`sidebar-item ${activeTab === 'Fleet' && platformFilter === p && !selectedClientId ? 'active' : ''}`}
+                                onClick={e => { e.preventDefault(); setActiveTab('Fleet'); setPlatformFilter(p); setSelectedClientId(null); }}>
+                                <div style={{ width: '17px', height: '17px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600 }}>{p[0]}</div>
+                                <span>{p}</span>
+                            </a>
+                        ))}
+                    </nav>
+                )}
 
                 <div className="sidebar-group-label" style={{ padding: '0 12px', marginBottom: '8px' }}>Operacional</div>
                 <nav className="sidebar-group" style={{ marginBottom: '24px' }}>

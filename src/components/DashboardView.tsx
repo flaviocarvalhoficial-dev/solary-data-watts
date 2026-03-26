@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, Zap, TrendingUp, AlertCircle, RefreshCw, ChevronRight, FileArchive } from 'lucide-react';
 import { ActiveClient } from '../utils/solarHelpers';
+import WattsMascot from './WattsMascot';
 
 interface DashboardViewProps {
     clients: any[];
@@ -38,14 +39,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
             {/* Header com título real do VDS */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--color-text-primary)' }}>Overview Dashboard</h2>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn-outline" style={{ background: '#1A1A1A', color: '#FFF', border: 'none', borderRadius: '8px', fontSize: '13px' }} onClick={handleBatchExport}>
-                        <FileArchive size={14} /> Exportar ZIP
-                    </button>
-                    <button className="btn btn-primary" style={{ background: 'var(--color-primary)', borderRadius: '8px', fontSize: '13px' }} onClick={() => syncSystemsFromAPI()}>
-                        <RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando...' : 'Atualizar Dados'}
-                    </button>
-                </div>
             </div>
 
             {/* KPI Grid - 3 Columns with Animated Wide Charts */}
@@ -59,7 +52,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 `}</style>
 
                 {/* CARD 1: TOTAL SISTEMAS (Wide Area Line) */}
-                <div className="card" style={{ padding: '24px', position: 'relative', overflow: 'hidden', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card" data-tooltip="Número total de sistemas fotovoltaicos cadastrados e monitorados na sua frota." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                     <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
                         <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Total de Sistemas</div>
                         <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{clients.length}</div>
@@ -82,7 +75,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
 
                 {/* CARD 2: GERAÇÃO HOJE (Wide Staggered Bars) */}
-                <div className="card" style={{ padding: '24px', position: 'relative', overflow: 'hidden', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card" data-tooltip="Energia total gerada por todos os seus sistemas nas últimas 24 horas." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
                         <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Geração Hoje</div>
                         <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
@@ -112,9 +105,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
 
                 {/* CARD 3: STATUS OPERACIONAL (Expansive Pulse) */}
-                <div className="card" style={{ padding: '24px', position: 'relative', overflow: 'hidden', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
+                <div className="card" data-tooltip="Sistemas que possuem pendências de faturas ou erro de sincronização com a API." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                     <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Sistemas Pendentes</div>
+                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Sistemas Incompletos</div>
                         <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{incompleteCount}</div>
                         <div style={{ marginTop: '12px' }}>
                             <span className={`badge ${incompleteCount > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
@@ -214,11 +207,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unidade Consumidora (UC)</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plataforma</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status do Relatório</th>
+                                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Última Atu.</th>
                                 <th style={{ textAlign: 'right', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {enrichedClients.slice(0, 8).map(ac => (
+                            {enrichedClients.length === 0 ? (
+                                <tr key="empty-dash">
+                                    <td colSpan={5} style={{ padding: '48px 24px', textAlign: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                            <WattsMascot state="dormindo" size={80} />
+                                            <div style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                                                Nenhum sistema cadastrado no momento.
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : enrichedClients.slice(0, 8).map(ac => (
                                 <tr key={ac.id}
                                     onClick={() => { setActiveTab('Clients'); setSelectedClientId(ac.id); }}
                                     style={{ borderBottom: '1px solid var(--color-bg-base)', cursor: 'pointer', transition: 'background 0.2s' }}
@@ -242,6 +247,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                         <span className={`badge badge-${ac.status === 'Completo' ? 'success' : ac.status === 'Divergente' ? 'warning' : 'danger'}`} style={{ fontSize: '10px' }}>
                                             {ac.status}
                                         </span>
+                                    </td>
+                                    <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                        {ac.updated_at ? new Date(ac.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '—'}
                                     </td>
                                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>

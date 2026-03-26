@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Zap, Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Zap, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Search, FileText } from 'lucide-react';
 import { MappedSystem, parseAPsystemsXLS } from '../utils/xlsImporter';
 
 interface NewClientModalProps {
@@ -16,8 +16,8 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
 }) => {
     if (!show) return null;
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <form onSubmit={onSubmit} style={{ background: '#fff', borderRadius: '16px', padding: '36px', width: '440px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+            <form onSubmit={onSubmit} style={{ background: '#fff', borderRadius: '16px', padding: '32px', width: '440px', display: 'flex', flexDirection: 'column', gap: '14px', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Novo Sistema</h3>
                     <button type="button" onClick={() => setShow(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
@@ -261,6 +261,192 @@ export const XLSImportModal: React.FC<XLSImportModalProps> = ({
                         {loading ? 'Processando...' : <><CheckCircle2 size={18} /> Confirmar Importação ({stats.new + stats.updated} sistemas)</>}
                     </button>
                     <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface ManualLinkModalProps {
+    show: boolean;
+    setShow: (show: boolean) => void;
+    unlinkedBill: { parsed: any, file: File } | null;
+    clients: any[];
+    onConfirm: (clientId: string) => void;
+}
+
+export const ManualLinkModal: React.FC<ManualLinkModalProps> = ({
+    show, setShow, unlinkedBill, clients, onConfirm
+}) => {
+    const [selectedId, setSelectedId] = React.useState('');
+    const [searchTerm, setSearchTerm] = React.useState('');
+
+    if (!show || !unlinkedBill) return null;
+
+    const filtered = clients.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.system_id?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+            <div style={{ background: '#fff', borderRadius: '24px', padding: '32px', width: '500px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ background: 'rgba(232, 89, 60, 0.1)', padding: '10px', borderRadius: '14px', color: 'var(--color-primary)' }}>
+                            <AlertCircle size={24} />
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Vínculo de UC Manual</h3>
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Não encontramos um sistema para a UC {unlinkedBill.parsed.uc}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ background: 'var(--color-bg-base)', padding: '16px', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Arquivo</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600 }}>{unlinkedBill.file.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Valor / Comp</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600 }}>R$ {unlinkedBill.parsed.totalValue.toLocaleString('pt-BR')} ({unlinkedBill.parsed.competency})</span>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ position: 'relative' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                        <input
+                            type="text"
+                            placeholder="Buscar cliente por nome ou ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '12px', border: '1px solid var(--color-border)', fontSize: '14px' }}
+                        />
+                    </div>
+
+                    <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
+                        {filtered.map(c => (
+                            <div
+                                key={c.id}
+                                onClick={() => setSelectedId(c.id)}
+                                style={{
+                                    padding: '12px 16px',
+                                    cursor: 'pointer',
+                                    background: selectedId === c.id ? 'var(--color-primary-muted)' : 'transparent',
+                                    borderBottom: '1px solid var(--color-border-light)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    transition: 'all 0.1s'
+                                }}
+                            >
+                                <div>
+                                    <div style={{ fontSize: '14px', fontWeight: selectedId === c.id ? 700 : 500, color: 'var(--color-text-primary)' }}>{c.name}</div>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>ID {c.system_id} · UC {c.uc}</div>
+                                </div>
+                                {selectedId === c.id && <CheckCircle2 size={16} color="var(--color-primary)" />}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        className="btn btn-primary"
+                        style={{ flex: 1, height: '44px' }}
+                        disabled={!selectedId}
+                        onClick={() => onConfirm(selectedId)}
+                    >
+                        Vincular e Processar
+                    </button>
+                    <button
+                        className="btn btn-outline"
+                        style={{ flex: 1, height: '44px' }}
+                        onClick={() => setShow(false)}
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface BillReviewModalProps {
+    show: boolean;
+    setShow: (show: boolean) => void;
+    data: any;
+    client: any;
+    onConfirm: () => void;
+}
+
+export const BillReviewModal: React.FC<BillReviewModalProps> = ({
+    show, setShow, data, client, onConfirm
+}) => {
+    if (!show || !data) return null;
+
+    const items = [
+        { label: 'UC Identificada', value: data.uc, color: '#111827' },
+        { label: 'Competência', value: data.competency, color: '#111827' },
+        { label: 'Valor Total', value: `R$ ${data.totalValue?.toLocaleString('pt-BR')}`, color: 'var(--color-primary)' },
+        { label: 'Consumo (Rede)', value: `${data.gridConsumption} kWh`, color: '#374151' },
+        { label: 'Injetado (Total)', value: `${data.injectedEnergy} kWh`, color: '#10B981' },
+        { label: 'Compensado (GD)', value: `${data.compensatedEnergy} kWh`, color: '#6366F1' },
+        { label: 'Saldo Acumulado', value: `${data.creditBalance} kWh`, color: '#F59E0B' },
+        { label: 'Tarifa Aplicada', value: `R$ ${data.tariffKwh?.toFixed(4)}`, color: '#374151' },
+    ];
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)' }}>
+            <div style={{ background: '#fff', borderRadius: '28px', padding: '40px', width: '500px', display: 'flex', flexDirection: 'column', gap: '24px', boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.25)' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'inline-flex', background: 'var(--color-primary-muted)', padding: '12px', borderRadius: '18px', marginBottom: '16px', color: 'var(--color-primary)' }}>
+                        <FileText size={32} />
+                    </div>
+                    <h3 style={{ fontSize: '22px', fontWeight: 800 }}>Revisar Dados da Fatura</h3>
+                    <p style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>Confirme se a leitura da IA está correta para este cliente.</p>
+                </div>
+
+                <div style={{ background: 'var(--color-bg-base)', padding: '16px', borderRadius: '18px', display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid var(--color-border)' }}>
+                    <div style={{ background: '#fff', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--color-primary)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                        {client?.name?.charAt(0) || 'U'}
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '15px', fontWeight: 700 }}>{client?.name || 'Vínculo Manual'}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>ID: {client?.system_id} · UC do Cadastro: {client?.uc}</div>
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {items.map(item => (
+                        <div key={item.label} style={{ background: '#fff', padding: '14px', borderRadius: '16px', border: '1px solid var(--color-border-light)' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>{item.label}</div>
+                            <div style={{ fontSize: '16px', fontWeight: 700, color: item.color }}>{item.value}</div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginTop: '8px' }}>
+                    <button
+                        className="btn btn-primary"
+                        style={{ height: '52px', fontSize: '16px', borderRadius: '14px' }}
+                        onClick={onConfirm}
+                    >
+                        Confirmar e Salvar
+                    </button>
+                    <button
+                        className="btn btn-outline"
+                        style={{ height: '52px', fontSize: '14px', borderRadius: '14px' }}
+                        onClick={() => setShow(false)}
+                    >
+                        Descartar
+                    </button>
+                </div>
+
+                <div style={{ fontSize: '11px', textAlign: 'center', color: '#EF4444', background: '#FEF2F2', padding: '8px', borderRadius: '8px', fontWeight: 600 }}>
+                    ⚠️ Verifique os valores antes de salvar. Erros afetarão os cálculos do relatório mensal.
                 </div>
             </div>
         </div>

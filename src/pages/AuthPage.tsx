@@ -43,14 +43,14 @@ const AuthPage: React.FC = () => {
                 // No shadow as per flat-first rule
             }}>
                 {/* Logo Section */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '40px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', justifyContent: 'center' }}>
                     <div style={{
-                        padding: '6px', background: 'rgba(232,89,60, 0.12)', borderRadius: '8px',
+                        padding: '6px', background: 'rgba(232,89,60, 0.10)', borderRadius: '8px',
                         color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                         <Sun size={24} fill="currentColor" strokeWidth={2.5} />
                     </div>
-                    <h1 style={{ fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--color-text-primary)' }}>Solary Data</h1>
+                    <h1 className="text-logo-handwritten" style={{ fontSize: '28px', lineHeight: 1 }}>Watts</h1>
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -155,7 +155,7 @@ const AuthPage: React.FC = () => {
 
             <div style={{ position: 'absolute', bottom: '32px', textAlign: 'center', width: '100%' }}>
                 <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Solary Data • Powered by Veselty Engine
+                    Watts • Powered by Veselty Engine
                 </p>
             </div>
         </div>
