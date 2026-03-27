@@ -8,7 +8,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.svg', 'logo.svg', 'logotipooficial.svg', 'mascote-watts/*.svg'],
+            includeAssets: ['favicon.svg', 'logo.svg', 'logotipooficial.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'mascote-watts/*.svg'],
             manifest: {
                 name: 'Watts Data',
                 short_name: 'Watts',
@@ -19,20 +19,20 @@ export default defineConfig({
                 orientation: 'portrait',
                 icons: [
                     {
-                        src: 'logotipooficial.svg',
+                        src: 'pwa-192x192.png',
                         sizes: '192x192',
-                        type: 'image/svg+xml',
+                        type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: 'logotipooficial.svg',
+                        src: 'pwa-512x512.png',
                         sizes: '512x512',
-                        type: 'image/svg+xml',
+                        type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: 'logotipooficial.svg',
-                        sizes: '192x192',
+                        src: 'logo.svg',
+                        sizes: 'any',
                         type: 'image/svg+xml',
                         purpose: 'maskable'
                     }
