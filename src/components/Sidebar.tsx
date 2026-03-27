@@ -2,9 +2,10 @@ import React from 'react';
 import {
     Sun, LayoutDashboard, FileText, ChevronLeft,
     Download, Edit3, X, LogOut, Settings as SettingsIcon,
-    ChevronDown, ChevronRight, HelpCircle
+    ChevronDown, ChevronRight, HelpCircle, Activity
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import APsystemsQuotaTracker from './APsystemsQuotaTracker';
 
 interface SidebarProps {
     user: User | null;
@@ -142,6 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </nav>
 
                 <nav className="sidebar-group" style={{ marginTop: 'auto' }}>
+                    <APsystemsQuotaTracker isCollapsed={isCollapsed} />
                     <a href="#" className="sidebar-item"
                         onClick={e => { e.preventDefault(); onShowOnboarding?.(); }}
                         title={isCollapsed ? "Tour do Watts" : ""}>

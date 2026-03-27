@@ -135,6 +135,16 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                     <RefreshCw size={12} /> Resetar
                                 </button>
                             )}
+                            {selectedAC.sync_status === 'SYNCING' && (
+                                <span className="badge badge-warning" style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <RefreshCw size={10} className="spin" /> Sincronizando...
+                                </span>
+                            )}
+                            {selectedAC.sync_status === 'ERROR' && (
+                                <span className="badge badge-danger" title={selectedAC.sync_error} style={{ fontSize: '11px', cursor: 'help' }}>
+                                    Erro na Sincronização
+                                </span>
+                            )}
                             <span className={`badge ${selectedStats ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
                                 {selectedStats ? 'Dados Sincronizados' : 'Aguardando Dados'}
                             </span>

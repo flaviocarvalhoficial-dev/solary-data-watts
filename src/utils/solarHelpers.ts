@@ -7,6 +7,8 @@ export type ActiveClient = Client & {
     status: 'Completo' | 'Divergente' | 'Incompleto';
     energy_today?: number;
     api_status?: string;
+    sync_status?: 'IDLE' | 'SYNCING' | 'ERROR';
+    sync_error?: string;
 };
 
 export function clientStatus(bill: Bill | null): 'Completo' | 'Divergente' | 'Incompleto' {
