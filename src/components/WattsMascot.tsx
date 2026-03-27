@@ -24,13 +24,13 @@ const WattsMascot: React.FC<WattsMascotProps> = ({
 }) => {
     // Mapeamento dos arquivos SVG localizados em src/Mascote Watss
     const mascotMap: Record<MascotState, string> = {
-        normal: '/src/Mascote%20Watss/normal.svg',
-        feliz: '/src/Mascote%20Watss/feliz.svg',
-        celebrando: '/src/Mascote%20Watss/celebrando.svg',
-        doente: '/src/Mascote%20Watss/doente.svg',
-        dormindo: '/src/Mascote%20Watss/dormindo.svg',
-        assustado: '/src/Mascote%20Watss/assustado.svg',
-        saudando: '/src/Mascote%20Watss/saudando.svg',
+        normal: '/mascote-watts/normal.svg',
+        feliz: '/mascote-watts/feliz.svg',
+        celebrando: '/mascote-watts/celebrando.svg',
+        doente: '/mascote-watts/doente.svg',
+        dormindo: '/mascote-watts/dormindo.svg',
+        assustado: '/mascote-watts/assustado.svg',
+        saudando: '/mascote-watts/saudando.svg',
     };
 
     const src = mascotMap[state] || mascotMap.normal;
