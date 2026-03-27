@@ -82,8 +82,9 @@ export function calculateFinalReport(
             saldo_creditos_kwh: bill.credit_balance || 0,
             valor_total_fatura: bill.total_value,
             tarifa_kwh: bill.tariff_kwh || (bill.consumption > 0 ? (bill.total_value - (bill.street_lighting || 0)) / bill.consumption : 0),
-            custo_disponibilidade: bill.total_value > 0 ? 50 : 0, // Mock for now
-            tributos: bill.total_value * 0.15 // Mock for now
+            custo_disponibilidade: bill.total_value > 0 ? 50 : 0,
+            tributos: bill.total_value * 0.15,
+            iluminacao_publica: bill.street_lighting || 0
         },
         geracao: {
             geracao_mes_kwh: gen,
@@ -97,14 +98,16 @@ export function calculateFinalReport(
         }
     };
 
-    // 1. FATURA ANTIGA CORRIGIDA
-    const fatura_antiga_corrigida = dados_entrada.fatura.valor_total_fatura + (dados_entrada.fatura.energia_compensada_kwh * dados_entrada.fatura.tarifa_kwh);
+    // 1. FATURA ANTIGA RECALCULADA (SEM SOLAR)
+    // Se não tivesse solar, ele pagaria pelo consumo integral + iluminação pública
+    const fatura_antiga_corrigida = (dados_entrada.fatura.consumo_kwh * dados_entrada.fatura.tarifa_kwh) + dados_entrada.fatura.iluminacao_publica;
 
     // 2. FATURA ATUAL COM SOLAR
     const fatura_atual_com_solar = dados_entrada.fatura.valor_total_fatura;
 
-    // 3. ECONOMIA MENSAL
-    const economia_mensal = Math.max(0, fatura_antiga_corrigida - fatura_atual_com_solar);
+    // 3. ECONOMIA MENSAL REAL
+    // A economia é baseada no que foi compensado + o que ele deixou de pagar
+    const economia_mensal = Math.max(0, (dados_entrada.fatura.energia_compensada_kwh * dados_entrada.fatura.tarifa_kwh));
 
     // 4. REDUÇÃO DA FATURA (%)
     const reducao_percentual = fatura_antiga_corrigida > 0 ? (economia_mensal / fatura_antiga_corrigida) * 100 : null;

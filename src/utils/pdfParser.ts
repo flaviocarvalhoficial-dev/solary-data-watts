@@ -47,12 +47,36 @@ export const parseFaturaPDF = async (file: File): Promise<ParsedBillData> => {
             || fullText.match(/(\d{2}\/20\d{2})/);
         const competency = compMatch ? compMatch[1] : 'N/A';
 
-        // 3. TOTAL VALUE (R$)
-        const valueMatch =
-            fullText.match(/(?:Total a Pagar|VALOR A PAGAR|TOTAL DA FATURA|VALOR TOTAL|PAGAR AT\u00C9|TOTAL)\s*(?:R\$)?\s*([\d,.]+)/i)
-            || fullText.match(/R\$\s*([\d,.]+)/);
-        const totalValueText = valueMatch ? valueMatch[1] : '0';
-        const totalValue = parseFloat(totalValueText.replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+        // 3. TOTAL A PAGAR (R$)
+        // Priorizamos strings que contenham "Total a Pagar" e valores com vírgula (formato brasileiro de moeda)
+        // para evitar que leituras de medidores (ex: 5.527) sejam confundidas com o valor da fatura.
+        const moneyValueRegex = /([\d.]*,\d{2})/; // Busca valores com vírgula e 2 decimais (ex: 166,06 ou 1.166,06)
+
+        let totalValue = 0;
+        const totalPayableMatch = fullText.match(/Total a Pagar\s*(?:R\$)?\s*([\d,.]+)/i);
+        const valorPagarMatch = fullText.match(/VALOR A PAGAR\s*(?:R\$)?\s*([\d,.]+)/i);
+        const genericMoneyMatch = fullText.match(/R\$\s*([\d,.]+)/);
+
+        const bestMatch = totalPayableMatch || valorPagarMatch || genericMoneyMatch;
+
+        if (bestMatch) {
+            const rawValue = bestMatch[1];
+            // Se o valor contiver vírgula, é muito provavelmente o preço correto
+            if (rawValue.includes(',')) {
+                totalValue = parseFloat(rawValue.replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+            } else {
+                // Se não tiver vírgula, verificamos se o próximo token no texto é um valor monetário
+                const index = fullText.indexOf(bestMatch[0]) + bestMatch[0].length;
+                const searchArea = fullText.substring(index, index + 20);
+                const secondaryMatch = searchArea.match(/([\d.]*,\d{2})/);
+                if (secondaryMatch) {
+                    totalValue = parseFloat(secondaryMatch[1].replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+                } else {
+                    // Fallback para o valor original se for o melhor que temos
+                    totalValue = parseFloat(rawValue.replace(/\.(?=\d{3})/g, '').replace(',', '.'));
+                }
+            }
+        }
 
         // 4. CONSUMO DA REDE (kWh)
         const consMatch =

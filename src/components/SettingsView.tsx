@@ -133,7 +133,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', background: '#E5E7EB', padding: '6px', borderRadius: '18px', width: 'fit-content' }}>
                 {[
-                    { id: 'user', label: 'Contra & Segurança', icon: User },
+                    { id: 'user', label: 'Conta & Segurança', icon: User },
                     { id: 'branding', label: 'Marca Watts', icon: Palette },
                     { id: 'brands', label: 'Fabricantes', icon: Share2 }
                 ].map(tab => (

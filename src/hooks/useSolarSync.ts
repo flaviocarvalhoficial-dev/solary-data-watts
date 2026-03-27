@@ -49,7 +49,8 @@ export function useSolarSync({
             );
 
             // Se for batch sync nas telas principais ou individual no APsystems, usamos o service especializado
-            if (['APsystems', 'Dashboard', 'Fleet', 'Bills'].includes(activeTab) || isIndividualAPsystems) {
+            // Se o batch sync for acionado em uma dessas telas
+            if (['APsystems', 'Painel', 'Frota', 'Faturas'].includes(activeTab) || isIndividualAPsystems) {
                 if (targetId && targetSid) {
                     const currentSystem = systems.find(s => s.sid === targetSid);
                     // Se não for APsystems, avisamos que ainda não tem suporte profundo

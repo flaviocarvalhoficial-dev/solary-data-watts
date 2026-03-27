@@ -156,7 +156,7 @@ const ExecutiveReport: React.FC<ExecutiveReportProps> = ({ data, branding }) => 
             {/* 6. CRÉDITOS ACUMULADOS & 7. RESULTADO TOTAL */}
             <section style={{ marginBottom: '32px' }}>
                 <h2 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: '16px', borderLeft: `3px solid ${primaryColor}`, paddingLeft: '10px', letterSpacing: '0.05em' }}>
-                    Créditos e Resultado Totalized
+                    Créditos e Resultado Total
                 </h2>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: '20px' }}>
                     <div style={{ background: 'var(--color-bg-muted)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>

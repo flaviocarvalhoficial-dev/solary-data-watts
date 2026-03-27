@@ -49,12 +49,12 @@ const AuthPage: React.FC = () => {
 
                 <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h2 style={{ fontSize: '22px', fontWeight: 600, marginBottom: '6px', color: 'var(--color-text-primary)' }}>
-                        {mode === 'login' ? 'Welcome back' : 'Create Account'}
+                        {mode === 'login' ? 'Bem-vindo de volta' : 'Criar Conta'}
                     </h2>
                     <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                         {mode === 'login'
-                            ? 'Solar fleet monitoring platform'
-                            : 'Setup your operator account'}
+                            ? 'Plataforma de gestão de frotas solares'
+                            : 'Configure sua conta de operador'}
                     </p>
                 </div>
 
@@ -64,7 +64,7 @@ const AuthPage: React.FC = () => {
                             <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                             <input
                                 type="text"
-                                placeholder="Full Name"
+                                placeholder="Nome Completo"
                                 value={fullName}
                                 onChange={e => setFullName(e.target.value)}
                                 required
@@ -81,7 +81,7 @@ const AuthPage: React.FC = () => {
                         <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                         <input
                             type="email"
-                            placeholder="Email Address"
+                            placeholder="Endereço de E-mail"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
@@ -97,7 +97,7 @@ const AuthPage: React.FC = () => {
                         <Lock size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                         <input
                             type="password"
-                            placeholder="Account Password"
+                            placeholder="Senha da Conta"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             required
@@ -130,18 +130,18 @@ const AuthPage: React.FC = () => {
                             opacity: isLoading ? 0.7 : 1
                         }}
                     >
-                        {isLoading ? 'Verifying...' : mode === 'login' ? 'Entrar' : 'Get Started'}
+                        {isLoading ? 'Verificando...' : mode === 'login' ? 'Entrar' : 'Começar Agora'}
                     </button>
                 </form>
 
                 <div style={{ textAlign: 'center', marginTop: '32px' }}>
                     <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                        {mode === 'login' ? "Don't have an account?" : "Already a member?"}{' '}
+                        {mode === 'login' ? "Não tem uma conta?" : "Já é um membro?"}{' '}
                         <button
                             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
                             style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
                         >
-                            {mode === 'login' ? 'Sign up' : 'Login'}
+                            {mode === 'login' ? 'Cadastrar-se' : 'Entrar'}
                         </button>
                     </p>
                 </div>

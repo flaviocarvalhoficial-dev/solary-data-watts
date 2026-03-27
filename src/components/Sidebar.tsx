@@ -2,7 +2,7 @@ import React from 'react';
 import {
     Sun, LayoutDashboard, FileText, ChevronLeft,
     Download, Edit3, X, LogOut, Settings as SettingsIcon,
-    ChevronDown, ChevronRight
+    ChevronDown, ChevronRight, HelpCircle
 } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
@@ -23,6 +23,7 @@ interface SidebarProps {
     setPlatformFilter: (tab: string) => void;
     isCollapsed: boolean;
     setIsCollapsed: (val: boolean) => void;
+    onShowOnboarding?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -41,7 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     platformFilter,
     setPlatformFilter,
     isCollapsed,
-    setIsCollapsed
+    setIsCollapsed,
+    onShowOnboarding
 }) => {
     const [isFleetExpanded, setIsFleetExpanded] = React.useState(true);
     const userInitial = (user?.email || 'A').charAt(0).toUpperCase();
@@ -52,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="logo-toggle-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isCollapsed ? '0' : '12px 8px', marginBottom: '24px' }}>
                 <div
                     className="logo-container"
-                    onClick={() => { setActiveTab('Dashboard'); setSelectedClientId(null); }}
+                    onClick={() => { setActiveTab('Painel'); setSelectedClientId(null); }}
                     style={{ display: 'flex', alignItems: 'center', padding: isCollapsed ? '0' : '4px', cursor: 'pointer' }}
                 >
                     <img
@@ -76,16 +78,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px' }}>
                 <nav className="sidebar-group" style={{ marginBottom: '8px' }}>
-                    <a href="#" className={`sidebar-item ${activeTab === 'Dashboard' && !selectedClientId ? 'active' : ''}`}
-                        onClick={e => { e.preventDefault(); setActiveTab('Dashboard'); setSelectedClientId(null); }}
-                        title={isCollapsed ? "Dashboard" : ""}>
+                    <a href="#" className={`sidebar-item ${activeTab === 'Painel' && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab('Painel'); setSelectedClientId(null); }}
+                        title={isCollapsed ? "Painel" : ""}>
                         <LayoutDashboard size={isCollapsed ? 22 : 18} />
-                        <span>Dashboard</span>
+                        <span>Painel</span>
                     </a>
 
                     <div
                         onClick={() => setIsFleetExpanded(!isFleetExpanded)}
-                        className={`sidebar-item ${activeTab === 'Fleet' && !selectedClientId ? 'active' : ''}`}
+                        className={`sidebar-item ${activeTab === 'Frota' && !selectedClientId ? 'active' : ''}`}
                         style={{ cursor: 'pointer', justifyContent: 'space-between', gap: isCollapsed ? '0' : '8px' }}
                         title={isCollapsed ? "Gestão de Projetos" : ""}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? '0' : '8px' }}>
@@ -98,8 +100,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {isFleetExpanded && (
                         <div style={{ paddingLeft: isCollapsed ? '0' : '16px', display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
                             {['APsystems', 'Sungrow', 'GoodWe'].map(p => (
-                                <a key={p} href="#" className={`sidebar-item ${activeTab === 'Fleet' && platformFilter === p && !selectedClientId ? 'active' : ''}`}
-                                    onClick={e => { e.preventDefault(); setActiveTab('Fleet'); setPlatformFilter(p); setSelectedClientId(null); }}
+                                <a key={p} href="#" className={`sidebar-item ${activeTab === 'Frota' && platformFilter === p && !selectedClientId ? 'active' : ''}`}
+                                    onClick={e => { e.preventDefault(); setActiveTab('Frota'); setPlatformFilter(p); setSelectedClientId(null); }}
                                     style={{ padding: '6px 12px', fontSize: '12px', gap: isCollapsed ? '0' : '8px' }}
                                     title={isCollapsed ? p : ""}>
                                     <div style={{
@@ -120,8 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     )}
 
-                    <a href="#" className={`sidebar-item ${activeTab === 'Bills' && !selectedClientId ? 'active' : ''}`}
-                        onClick={e => { e.preventDefault(); setActiveTab('Bills'); setSelectedClientId(null); }}
+                    <a href="#" className={`sidebar-item ${activeTab === 'Faturas' && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab('Faturas'); setSelectedClientId(null); }}
                         title={isCollapsed ? "Central de Faturas" : ""}>
                         <FileText size={isCollapsed ? 22 : 18} />
                         <span>Faturas</span>
@@ -131,11 +133,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div style={{ height: '1px', background: 'var(--color-border)', margin: isCollapsed ? '16px 8px' : '16px 12px', opacity: 0.5 }} />
 
                 <nav className="sidebar-group">
-                    <a href="#" className={`sidebar-item ${activeTab === 'Settings' && !selectedClientId ? 'active' : ''}`}
-                        onClick={e => { e.preventDefault(); setActiveTab('Settings'); setSelectedClientId(null); }}
+                    <a href="#" className={`sidebar-item ${activeTab === 'Configuracoes' && !selectedClientId ? 'active' : ''}`}
+                        onClick={e => { e.preventDefault(); setActiveTab('Configuracoes'); setSelectedClientId(null); }}
                         title={isCollapsed ? "Configurações" : ""}>
                         <SettingsIcon size={isCollapsed ? 22 : 18} />
                         <span>Configurações</span>
+                    </a>
+                </nav>
+
+                <nav className="sidebar-group" style={{ marginTop: 'auto' }}>
+                    <a href="#" className="sidebar-item"
+                        onClick={e => { e.preventDefault(); onShowOnboarding?.(); }}
+                        title={isCollapsed ? "Tour do Watts" : ""}>
+                        <HelpCircle size={isCollapsed ? 22 : 18} />
+                        <span>Tour do Watts</span>
                     </a>
                 </nav>
 
@@ -206,7 +217,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </div>
             </div>
-        </aside>
+        </aside >
     );
 };
 

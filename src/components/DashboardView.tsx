@@ -85,7 +85,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                         <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Total de Sistemas</div>
                         <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{clients.length}</div>
                         <div style={{ marginTop: '12px' }}>
-                            <span className="badge badge-success" style={{ fontSize: '11px', padding: '4px 10px' }}>↑ 4% growth</span>
+                            <span className="badge badge-success" style={{ fontSize: '11px', padding: '4px 10px' }}>↑ 4% crescimento</span>
                         </div>
                     </div>
                     {/* Wider Lateral Chart */}
@@ -97,7 +97,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
                         <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }} onClick={e => { e.preventDefault(); setActiveTab('Clients'); }}>
-                            See Details <ChevronRight size={14} style={{ marginLeft: '4px' }} />
+                            Ver Detalhes <ChevronRight size={14} style={{ marginLeft: '4px' }} />
                         </a>
                     </div>
                 </div>
@@ -110,7 +110,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                             {enrichedClients.reduce((acc, curr) => acc + (curr.energy_today || 0), 0).toFixed(1)} <span style={{ fontSize: '16px', fontWeight: 400 }}>kWh</span>
                         </div>
                         <div style={{ marginTop: '12px' }}>
-                            <span className="badge" style={{ background: 'var(--color-status-success-bg)', color: 'var(--color-status-success-text)', fontSize: '11px', padding: '4px 10px' }}>↑ High Performance</span>
+                            <span className="badge" style={{ background: 'var(--color-status-success-bg)', color: 'var(--color-status-success-text)', fontSize: '11px', padding: '4px 10px' }}>↑ Alta Performance</span>
                         </div>
                     </div>
                     {/* Wider Lateral Responsive Dynamic Bars */}
@@ -127,7 +127,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
                         <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                            Global Data <ChevronRight size={14} style={{ marginLeft: '4px' }} />
+                            Dados Globais <ChevronRight size={14} style={{ marginLeft: '4px' }} />
                         </a>
                     </div>
                 </div>
@@ -139,7 +139,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                         <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{incompleteCount}</div>
                         <div style={{ marginTop: '12px' }}>
                             <span className={`badge ${incompleteCount > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                                {incompleteCount > 0 ? 'Critical Attention' : 'All systems normal'}
+                                {incompleteCount > 0 ? 'Atenção Crítica' : 'Todos os sistemas normais'}
                             </span>
                         </div>
                     </div>
@@ -151,7 +151,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
                         <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                            View Issues <ChevronRight size={14} style={{ marginLeft: '4px' }} />
+                            Ver Divergências <ChevronRight size={14} style={{ marginLeft: '4px' }} />
                         </a>
                     </div>
                 </div>
@@ -170,7 +170,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     {isSyncingAPI && syncTotal > 0 && (
                         <div style={{ marginBottom: '24px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 500, color: 'var(--color-primary)', marginBottom: '6px' }}>
-                                <span>Syncing local systems with platform...</span>
+                                <span>Sincronizando sistemas locais com a plataforma...</span>
                                 <span>{syncProgress} / {syncTotal} ({Math.round((syncProgress / syncTotal) * 100)}%)</span>
                             </div>
                             <div style={{ width: '100%', height: '8px', background: '#F5F5F0', borderRadius: '4px', overflow: 'hidden' }}>
@@ -189,7 +189,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                             <div key={idx} style={{ padding: '16px', background: 'var(--color-bg-base)', borderRadius: '10px' }}>
                                 <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>{s.label}</div>
                                 <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{s.count}</div>
-                                <div style={{ marginTop: '8px' }}><span className={`badge badge-${s.css}`}>Real-time</span></div>
+                                <div style={{ marginTop: '8px' }}><span className={`badge badge-${s.css}`}>Tempo Real</span></div>
                             </div>
                         ))}
                     </div>

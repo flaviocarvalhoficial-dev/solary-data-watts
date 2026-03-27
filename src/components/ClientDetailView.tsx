@@ -97,7 +97,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         <Eye size={14} /> Revisar Relatório
                     </button>
                     <button className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={syncSystemsFromAPI} disabled={isSyncingAPI}>
-                        <RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sync' : 'Atualizar'}
+                        <RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando' : 'Atualizar'}
                     </button>
                     <label className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
                         <Plus size={14} /> Enviar Fatura
@@ -107,7 +107,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         <Edit3 size={14} /> Editar Dados
                     </button>
                     <button className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={() => handleExportPDF(selectedAC)}>
-                        <Download size={14} /> PDF
+                        <Download size={14} /> Baixar PDF
                     </button>
                 </div>
             </div>
@@ -136,7 +136,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                 </button>
                             )}
                             <span className={`badge ${selectedStats ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                                {selectedStats ? 'Dados Sincronizados' : 'Aguardando Sinc'}
+                                {selectedStats ? 'Dados Sincronizados' : 'Aguardando Dados'}
                             </span>
                         </div>
                     </div>
@@ -154,7 +154,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                         { label: 'Consumo', value: `${(selectedBill.consumption || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kWh` },
                                         { label: 'Compensado', value: `${(selectedBill.compensated_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kWh` },
                                         { label: 'Tarifa', value: `R$ ${(selectedBill.tariff_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
-                                        { label: 'Valor Total', value: `R$ ${selectedBill.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, primary: true },
+                                        { label: 'Total a Pagar', value: `R$ ${selectedBill.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, primary: true },
                                     ].map((item, idx) => (
                                         <div key={idx} style={{
                                             display: 'flex',
@@ -239,7 +239,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', padding: '20px' }}>
                         <button className="btn" style={{ padding: '12px 32px', background: '#374151', color: '#fff', borderRadius: '8px' }} onClick={() => setShowReviewModal(false)}>Voltar para Auditoria</button>
-                        <button className="btn btn-primary" style={{ padding: '12px 32px', borderRadius: '8px' }} onClick={() => { handleExportPDF(selectedAC); setShowReviewModal(false); }}>Download PDF</button>
+                        <button className="btn btn-primary" style={{ padding: '12px 32px', borderRadius: '8px' }} onClick={() => { handleExportPDF(selectedAC); setShowReviewModal(false); }}>Baixar PDF</button>
                     </div>
                 </div>
             )}

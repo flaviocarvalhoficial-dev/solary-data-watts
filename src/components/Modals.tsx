@@ -390,7 +390,7 @@ export const BillReviewModal: React.FC<BillReviewModalProps> = ({
     const items = [
         { label: 'Conta Contrato', value: data.uc, color: '#111827' },
         { label: 'Competência', value: data.competency, color: '#111827' },
-        { label: 'Valor Total', value: `R$ ${data.totalValue?.toLocaleString('pt-BR')}`, color: 'var(--color-primary)' },
+        { label: 'Total a Pagar', value: `R$ ${data.totalValue?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, color: 'var(--color-primary)' },
         { label: 'Consumo (Rede)', value: `${data.gridConsumption} kWh`, color: '#374151' },
         { label: 'Injetado (Total)', value: `${data.injectedEnergy} kWh`, color: '#10B981' },
         { label: 'Compensado (GD)', value: `${data.compensatedEnergy} kWh`, color: '#6366F1' },

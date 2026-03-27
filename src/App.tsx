@@ -35,7 +35,7 @@ function App() {
     const { bills, refetch: refetchBills, create: createBill, update: updateBill, remove: deleteBill, resetForClient } = useBills();
 
     // State
-    const [activeTab, setActiveTab] = useState('Dashboard');
+    const [activeTab, setActiveTab] = useState('Painel');
     const [platformFilter, setPlatformFilter] = useState('Todas');
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -196,14 +196,14 @@ function App() {
 
         if (platforms.length === 1) {
             const platform = platforms[0];
-            setActiveTab('Fleet');
+            setActiveTab('Frota');
             setPlatformFilter(platform || 'Todas');
             setSelectedClientId(null);
             return;
         }
 
         // Multi-fabricante
-        setActiveTab('Dashboard');
+        setActiveTab('Painel');
         setSelectedClientId(null);
     };
 
@@ -215,8 +215,8 @@ function App() {
             const matchStatus = statusFilter === 'Todos' || c.status === statusFilter;
             const matchPlatform = platformFilter === 'Todas' || c.platform === platformFilter;
 
-            // Se estiver na aba Fleet, filtra por busca, status e plataforma
-            if (activeTab === 'Fleet') return matchSearch && matchStatus && matchPlatform;
+            // Se estiver na aba Frota, filtra por busca, status e plataforma
+            if (activeTab === 'Frota') return matchSearch && matchStatus && matchPlatform;
 
             // Fallback para outras abas (Bills, etc)
             return matchSearch && matchStatus;
@@ -338,12 +338,13 @@ function App() {
                 signOut={signOut} handleExportPDF={handleExportPDF} handleStartEdit={triggerStartEdit}
                 removeClient={removeClient} selectedAC={selectedAC}
                 isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed}
+                onShowOnboarding={() => setShowOnboarding(true)}
             />
 
             <main className="main-content">
                 {!selectedClientId && (
-                    <header className="topbar" style={activeTab === 'Settings' ? { justifyContent: 'center', height: '80px' } : {}}>
-                        {activeTab === 'Settings' ? (
+                    <header className="topbar" style={activeTab === 'Configuracoes' ? { justifyContent: 'center', height: '80px' } : {}}>
+                        {activeTab === 'Configuracoes' ? (
                             <div className="search-container">
                                 <Search size={18} className="search-icon" />
                                 <input
@@ -355,7 +356,7 @@ function App() {
                         ) : (
                             <>
                                 <h2 className="text-page-title">
-                                    {activeTab === 'Dashboard' ? 'Dashboard' : activeTab === 'Bills' ? 'Central de Faturas' : activeTab === 'Fleet' ? 'Gestão de Frota' : activeTab}
+                                    {activeTab === 'Painel' ? 'Dashboard' : activeTab === 'Faturas' ? 'Central de Faturas' : activeTab === 'Frota' ? 'Gestão de Frota' : activeTab}
                                 </h2>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -437,9 +438,9 @@ function App() {
                             clientBills={bills.filter(b => b.client_id === selectedAC.id)}
                             handleDeleteBill={handleDeleteBill}
                         />
-                    ) : activeTab === 'Settings' ? (
+                    ) : activeTab === 'Configuracoes' ? (
                         <SettingsView user={user} branding={branding} setBranding={setBranding} />
-                    ) : activeTab === 'Dashboard' ? (
+                    ) : activeTab === 'Painel' ? (
                         <DashboardView
                             clients={filteredClients} enrichedClients={filteredClients}
                             totalGeneration={filteredClients.reduce((a, c) => a + (c.generation || 0), 0)}
@@ -455,7 +456,7 @@ function App() {
                             syncProgress={syncProgress} syncTotal={syncTotal}
                             history={history} recordSnapshot={recordSnapshot}
                         />
-                    ) : activeTab === 'Bills' ? (
+                    ) : activeTab === 'Faturas' ? (
                         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px 20px' }}>
                             <div
                                 className="card"
@@ -520,7 +521,7 @@ function App() {
                                 ))}
                             </div>
                         </div>
-                    ) : activeTab === 'Fleet' ? (
+                    ) : activeTab === 'Frota' ? (
                         <ClientsListView
                             statusFilter={statusFilter} setStatusFilter={setStatusFilter}
                             platformFilter={platformFilter} setPlatformFilter={setPlatformFilter}
@@ -550,7 +551,7 @@ function App() {
                         <div className="empty-state">
                             <WattsMascot state="dormindo" size={120} className="mb-4" />
                             <h3>Página em desenvolvimento</h3>
-                            <button className="btn btn-outline mt-4" onClick={() => setActiveTab('Dashboard')}>Voltar ao Dashboard</button>
+                            <button className="btn btn-outline mt-4" onClick={() => setActiveTab('Painel')}>Voltar ao Dashboard</button>
                         </div>
                     )}
                 </div>
@@ -560,4 +561,3 @@ function App() {
 }
 
 export default App;
-
