@@ -88,7 +88,7 @@ export const APsystemsEnergyService = {
         }
     },
 
-    async syncSingleSystem(id: string, sid: string, force: boolean = false) {
+    async syncSingleSystem(id: string, sid: string, tem_meter: boolean = false, force: boolean = false) {
         // Módulo 4: Lock de Recursos (Semáforo)
         // 1. Verificar se já não está sincronizando ou se foi atualizado hoje
         const todayStr = new Date().toISOString().split('T')[0];
@@ -161,9 +161,9 @@ export const APsystemsEnergyService = {
         // Buscar sistemas priorizando os que não sincronizaram hoje e NÃO estão em erro ou sincronizando
         const { data: dbSystems, error: dbError } = await supabase
             .from('systems')
-            .select('id, sid, last_sync, sync_status')
+            .select('id, sid, last_sync, sync_status, tem_meter')
             .or(`last_sync.is.null,last_sync.lt.${todayStr}`)
-            .eq('sync_status', 'IDLE') // Apenas os que não estão travados
+            .eq('sync_status', 'IDLE')
             .order('last_sync', { ascending: true, nullsFirst: true })
             .limit(MAX_BATCH_SIZE);
 
@@ -180,7 +180,7 @@ export const APsystemsEnergyService = {
         if (!dbSystems || dbSystems.length === 0) return result;
 
         for (const sys of dbSystems) {
-            const syncRes = await this.syncSingleSystem(sys.id, sys.sid);
+            const syncRes = await this.syncSingleSystem(sys.id, sys.sid, sys.tem_meter === true);
             if (syncRes.success) result.sucesso++;
             else {
                 result.falhas++;
