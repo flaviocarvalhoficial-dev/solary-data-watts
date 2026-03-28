@@ -144,6 +144,7 @@ export interface Database {
                     storage_path: string | null
                     created_at: string | null
                     issue_date: string | null
+                    generation: number
                 }
                 Insert: {
                     client_id: string
@@ -158,6 +159,7 @@ export interface Database {
                     confidence?: number | null
                     storage_path?: string | null
                     issue_date?: string | null
+                    generation?: number
                 }
                 Update: {
                     competency?: string
@@ -171,6 +173,7 @@ export interface Database {
                     confidence?: number | null
                     storage_path?: string | null
                     issue_date?: string | null
+                    generation?: number
                 }
             }
             calculations: {

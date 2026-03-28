@@ -16,7 +16,7 @@ export function useEnrichedClients({ clients, systems, billMap }: UseEnrichedCli
             const bill = billMap.get(c.id) || null;
             return {
                 ...c,
-                generation: (c as any).last_generation || 0,
+                generation: bill?.generation ?? (c as any).last_generation ?? 0,
                 latestBill: bill,
                 status: clientStatus(bill),
             } as ActiveClient;

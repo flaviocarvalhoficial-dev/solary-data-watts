@@ -261,7 +261,8 @@ function App() {
         try {
             const formattedBillData = {
                 ...billData,
-                issue_date: formatDateToISO(billData.issue_date)
+                issue_date: formatDateToISO(billData.issue_date),
+                generation: generation !== undefined ? parseFloat(String(generation)) : 0
             };
 
             if (existingBill?.id) await updateBill(existingBill.id, formattedBillData);

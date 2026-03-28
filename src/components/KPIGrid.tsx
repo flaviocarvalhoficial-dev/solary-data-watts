@@ -28,7 +28,7 @@ export const KPIGrid: React.FC<KPIGridProps> = ({ selectedAC, selectedBill, sele
         },
         {
             label: 'Redução %',
-            value: selectedStats ? `${Math.round(selectedStats.resultado.reducao_percentual)}%` : '—',
+            value: selectedStats ? `${Math.round(selectedStats.resultado.reducao_percentual ?? 0)}%` : '—',
             sub: 'Impacto na Fatura',
             color: '#059669',
             tooltip: 'Percentual de redução na conta de energia comparando com a fatura base (Marco Zero).'
