@@ -10,6 +10,7 @@ interface DashboardViewProps {
     totalGeneration: number;
     totalEconomy: number;
     incompleteCount: number;
+    totalCreditsKwh: number;
     handleBatchExport: () => void;
     isUploading: boolean;
     setSelectedClientId: (id: string | null) => void;
@@ -28,6 +29,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     totalGeneration,
     totalEconomy,
     incompleteCount,
+    totalCreditsKwh,
     handleBatchExport,
     isUploading,
     setSelectedClientId,
@@ -69,8 +71,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         <div style={{ padding: '0 24px' }}>
             {/* Header com título real do VDS */}
 
-            {/* KPI Grid - 3 Columns with Animated Wide Charts */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '32px' }}>
+            {/* KPI Grid - 4 Columns with Animated Wide Charts */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
                 <style>{`
                     @keyframes slideUp { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
                     @keyframes drawPath { from { stroke-dashoffset: 200; } to { stroke-dashoffset: 0; } }
@@ -132,26 +134,42 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                 </div>
 
-                {/* CARD 3: STATUS OPERACIONAL (Expansive Pulse) */}
-                <div className="card" data-tooltip="Sistemas que possuem pendências de faturas ou erro de sincronização com a API." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                {/* CARD 3: ECONOMIA PROJETADA (Financial Pulse) */}
+                <div className="card" data-tooltip="Economia financeira total estimada para o período selecionado em todos os sistemas da frota." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                     <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Sistemas Incompletos</div>
-                        <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{incompleteCount}</div>
+                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Economia no Mês</div>
+                        <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-primary)' }}>R$ {totalEconomy.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                         <div style={{ marginTop: '12px' }}>
-                            <span className={`badge ${incompleteCount > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                                {incompleteCount > 0 ? 'Atenção Crítica' : 'Todos os sistemas normais'}
-                            </span>
+                            <span className="badge badge-success" style={{ fontSize: '11px', padding: '4px 10px' }}>Alta Rentabilidade</span>
                         </div>
                     </div>
-                    {/* Wider Lateral Pulsing Alert Heartbeat */}
-                    <div style={{ position: 'absolute', right: '0', top: '16px', bottom: '56px', width: '45%', pointerEvents: 'none', paddingRight: '16px' }}>
-                        <svg width="100%" height="100%" viewBox="0 0 80 50" preserveAspectRatio="none">
-                            <polyline points="0,25 15,25 20,5 35,45 40,25 80,25" fill="none" stroke={incompleteCount > 0 ? "var(--color-danger)" : "var(--color-status-success-text)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'pulseGlow 2s infinite ease-in-out' }} />
-                        </svg>
+                    <div style={{ position: 'absolute', right: '16px', top: '24px', bottom: '56px', width: '40%', opacity: 0.15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingUp size={64} style={{ color: 'var(--color-primary)' }} />
                     </div>
                     <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
                         <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                            Ver Divergências <ChevronRight size={14} style={{ marginLeft: '4px' }} />
+                            Visualizar ROI <ChevronRight size={14} style={{ marginLeft: '4px' }} />
+                        </a>
+                    </div>
+                </div>
+
+                {/* CARD 4: CRÉDITOS ACUMULADOS (Zap Area) */}
+                <div className="card" data-tooltip="Total de créditos de energia acumulados na sua frota para uso futuro." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
+                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Créditos em Frota</div>
+                        <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                            {totalCreditsKwh.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} <span style={{ fontSize: '14px', fontWeight: 400 }}>kWh</span>
+                        </div>
+                        <div style={{ marginTop: '12px' }}>
+                            <span className="badge" style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary)', fontSize: '11px', padding: '4px 10px' }}>Reserva Energética</span>
+                        </div>
+                    </div>
+                    <div style={{ position: 'absolute', right: '16px', top: '24px', bottom: '56px', width: '40%', opacity: 0.1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Zap size={64} style={{ color: 'var(--color-primary)' }} />
+                    </div>
+                    <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
+                        <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                            Gerenciar Saldo <ChevronRight size={14} style={{ marginLeft: '4px' }} />
                         </a>
                     </div>
                 </div>

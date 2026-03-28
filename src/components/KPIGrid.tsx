@@ -39,6 +39,20 @@ export const KPIGrid: React.FC<KPIGridProps> = ({ selectedAC, selectedBill, sele
             sub: 'Recuperado da fatura',
             color: 'var(--color-text-primary)',
             tooltip: 'Acúmulo de energia injetada disponível para uso em ciclos futuros.'
+        },
+        {
+            label: 'Economia no Ciclo',
+            value: selectedStats ? `R$ ${selectedStats.resultado.economia_ciclo.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
+            sub: 'Periodo Projetado',
+            color: 'var(--color-primary)',
+            tooltip: 'Valor total economizado acumulado ou projetado no ciclo técnico.'
+        },
+        {
+            label: 'Resultado Total',
+            value: selectedStats ? `R$ ${selectedStats.resultado.resultado_total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
+            sub: 'Economia + Créditos',
+            color: '#1d4ed8',
+            tooltip: 'Soma da economia financeira direta mais o valor equivalente dos créditos acumulados.'
         }
     ];
 
@@ -48,7 +62,7 @@ export const KPIGrid: React.FC<KPIGridProps> = ({ selectedAC, selectedBill, sele
         : '—';
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '32px' }}>
             <style>
                 {`
                 @keyframes progress-fill-grid {

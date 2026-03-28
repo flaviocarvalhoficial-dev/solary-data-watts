@@ -166,8 +166,14 @@ function App() {
     const [selectedCompetency, setSelectedCompetency] = useState<string>('');
 
     React.useEffect(() => {
-        if (!selectedCompetency && availableCompetencies.length > 0) {
-            setSelectedCompetency(availableCompetencies[0]);
+        // Auto-select latest competency if none selected or if selected is no longer valid
+        if (availableCompetencies.length > 0) {
+            const isValid = selectedCompetency && availableCompetencies.includes(selectedCompetency);
+            if (!selectedCompetency || !isValid) {
+                setSelectedCompetency(availableCompetencies[0]);
+            }
+        } else if (selectedCompetency !== '') {
+            setSelectedCompetency('');
         }
     }, [availableCompetencies, selectedCompetency]);
 
@@ -486,12 +492,15 @@ function App() {
                         <DashboardView
                             clients={filteredClients} enrichedClients={filteredClients}
                             totalGeneration={filteredClients.reduce((a, c) => a + (c.generation || 0), 0)}
-                            totalEconomy={enrichedClients.reduce((a, c) => {
-                                const bill = c.latestBill;
-                                if (!bill) return a;
-                                return a + calculateFinalReport(c, bill, c.generation).resultado.economia_mensal;
+                            totalEconomy={filteredClients.reduce((acc, curr) => {
+                                if (!curr.latestBill) return acc;
+                                try {
+                                    const rep = calculateFinalReport(curr, curr.latestBill, curr.generation);
+                                    return acc + rep.resultado.economia_mensal;
+                                } catch { return acc; }
                             }, 0)}
-                            incompleteCount={enrichedClients.filter(c => c.status === 'Incompleto').length}
+                            totalCreditsKwh={filteredClients.reduce((acc, curr) => acc + (curr.latestBill?.credit_balance || 0), 0)}
+                            incompleteCount={enrichedClients.filter(c => c.status !== 'Completo').length}
                             handleBatchExport={() => handleBatchExport(setSelectedClientId)} isUploading={isUploading || isExporting}
                             setSelectedClientId={setSelectedClientId} setActiveTab={setActiveTab}
                             syncSystemsFromAPI={() => syncSystemsFromAPI()} isSyncingAPI={isSyncingAPI}

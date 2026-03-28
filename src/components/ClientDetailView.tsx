@@ -163,13 +163,27 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                 : 'Faltam dados operacionais ou fatura para esta competência. Sincronize via API ou envie o PDF da fatura.'}
                         </p>
 
+                        {selectedStats && (
+                            <div style={{ background: 'rgba(232, 89, 60, 0.05)', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(232, 89, 60, 0.1)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>
+                                    <AlertTriangle size={14} /> Cobranças Residuais
+                                </div>
+                                <p style={{ fontSize: '10.5px', color: 'var(--color-text-secondary)', lineHeight: '1.4', margin: 0 }}>
+                                    Mesmo com consumo compensado, a fatura mantém custos de CIP, tributos e encargos GD2. <b>Economia Real: R$ {selectedStats.resultado.economia_mensal.toLocaleString('pt-BR')}</b>.
+                                </p>
+                            </div>
+                        )}
+
                         {selectedBill && (
                             <div style={{ background: 'var(--color-bg-base)', borderRadius: '10px', padding: '16px', marginBottom: '20px', border: '1px solid var(--color-border)' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {[
-                                        { label: 'Consumo', value: `${(selectedBill.consumption || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kWh` },
-                                        { label: 'Compensado', value: `${(selectedBill.compensated_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} kWh` },
-                                        { label: 'Tarifa', value: `R$ ${(selectedBill.tariff_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
+                                        { label: 'Geração (API)', value: `${(selectedAC.generation || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
+                                        { label: 'Consumo', value: `${(selectedBill.consumption || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
+                                        { label: 'Compensado', value: `${(selectedBill.compensated_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
+                                        { label: 'Injetada', value: `${(selectedBill.injected_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
+                                        { label: 'Tarifa', value: `R$ ${(selectedBill.tariff_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 })}` },
+                                        { label: 'CIP/Iluminação', value: `R$ ${(selectedBill.street_lighting || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
                                         { label: 'Total a Pagar', value: `R$ ${selectedBill.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, primary: true },
                                     ].map((item, idx) => (
                                         <div key={idx} style={{
@@ -177,7 +191,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                             justifyContent: 'space-between',
                                             alignItems: 'center',
                                             padding: '8px 0',
-                                            borderBottom: idx === 3 ? 'none' : '1px solid var(--color-border-light)'
+                                            borderBottom: idx === 6 ? 'none' : '1px solid var(--color-border-light)'
                                         }}>
                                             <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>{item.label}</span>
                                             <span style={{
