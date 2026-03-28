@@ -63,6 +63,8 @@ export interface Database {
                     platform_create_user_id: string | null
                     platform_update_user_id: string | null
                     source: string | null
+                    baseline_bill_value: number | null
+                    baseline_bill_date: string | null
                 }
                 Insert: {
                     user_id: string
@@ -84,7 +86,6 @@ export interface Database {
                     system_type?: string | null
                     energy_today?: number | null
                     last_api_sync?: string | null
-                    platform_id?: string | null
                     external_user_id?: string | null
                     external_system_id?: string | null
                     sid?: string | null
@@ -92,6 +93,8 @@ export interface Database {
                     platform_create_user_id?: string | null
                     platform_update_user_id?: string | null
                     source?: string | null
+                    baseline_bill_value?: number | null
+                    baseline_bill_date?: string | null
                 }
                 Update: {
                     name?: string
@@ -121,6 +124,8 @@ export interface Database {
                     platform_create_user_id?: string | null
                     platform_update_user_id?: string | null
                     source?: string | null
+                    baseline_bill_value?: number | null
+                    baseline_bill_date?: string | null
                 }
             }
             bills: {
@@ -138,6 +143,7 @@ export interface Database {
                     confidence: number | null
                     storage_path: string | null
                     created_at: string | null
+                    issue_date: string | null
                 }
                 Insert: {
                     client_id: string
@@ -151,6 +157,7 @@ export interface Database {
                     street_lighting?: number | null
                     confidence?: number | null
                     storage_path?: string | null
+                    issue_date?: string | null
                 }
                 Update: {
                     competency?: string
@@ -163,6 +170,7 @@ export interface Database {
                     street_lighting?: number | null
                     confidence?: number | null
                     storage_path?: string | null
+                    issue_date?: string | null
                 }
             }
             calculations: {

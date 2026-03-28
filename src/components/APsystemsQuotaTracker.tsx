@@ -19,7 +19,7 @@ const APsystemsQuotaTracker: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed
                 .from('apsystems_monthly_quota')
                 .select('month_year, call_count')
                 .eq('month_year', currentMonth)
-                .single();
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
 

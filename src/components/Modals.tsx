@@ -27,6 +27,7 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
                     { label: 'Conta Contrato', field: 'uc', type: 'text', placeholder: 'Ex: 3028275551' },
                     { label: 'System ID (APsystems)', field: 'system_id', type: 'text', placeholder: 'ID da plataforma' },
                     { label: 'Investimento (R$)', field: 'investment', type: 'number', placeholder: '0' },
+                    { label: 'Data de Ativação', field: 'activation_date', type: 'date', placeholder: '' },
                     { label: 'Tarifa (R$/kWh)', field: 'current_kwh_value', type: 'number', placeholder: '0.95' },
                 ].map(({ label, field, type, placeholder }) => (
                     <div key={field}>

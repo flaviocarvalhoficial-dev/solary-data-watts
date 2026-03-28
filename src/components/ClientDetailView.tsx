@@ -103,9 +103,6 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         <Plus size={14} /> Enviar Fatura
                         <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
                     </label>
-                    <button className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={handleStartEdit}>
-                        <Edit3 size={14} /> Editar Dados
-                    </button>
                     <button className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={() => handleExportPDF(selectedAC)}>
                         <Download size={14} /> Baixar PDF
                     </button>
@@ -119,6 +116,15 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     generation={selectedAC.generation}
                     compensatedEnergy={selectedStats?.dados_entrada.fatura.energia_compensada_kwh || 0}
                     gridConsumption={selectedStats?.dados_entrada.fatura.consumo_kwh || 0}
+                    injectedEnergy={selectedBill?.injected_energy || 0}
+                    history={clientBills
+                        .sort((a, b) => new Date(a.competency).getTime() - new Date(b.competency).getTime())
+                        .map(bill => ({
+                            label: new Date(bill.competency).toLocaleDateString('pt-BR', { month: 'short' }),
+                            value: bill.generation || 0
+                        }))
+                        .slice(-6)
+                    }
                 />
 
                 {/* Status & Review Card */}
@@ -185,11 +191,16 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                             </div>
                         )}
 
-                        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ marginTop: 'auto', display: 'flex', gap: '8px' }}>
                             {selectedStats ? (
-                                <button className="btn btn-outline" style={{ width: '100%', borderRadius: '8px' }} onClick={() => setShowReviewModal(true)}>
-                                    Visualizar PDF Executivo
-                                </button>
+                                <>
+                                    <button className="btn btn-outline" style={{ flex: 1, borderRadius: '8px' }} onClick={() => setShowReviewModal(true)}>
+                                        Visualizar PDF Executivo
+                                    </button>
+                                    <button className="btn btn-outline" style={{ flex: 1, borderRadius: '8px' }} onClick={handleStartEdit} title="Editar Dados Manuais">
+                                        <Edit3 size={14} /> Editar Dados
+                                    </button>
+                                </>
                             ) : (
                                 <div
                                     style={{

@@ -29,6 +29,13 @@ export interface ReportResult {
     payback_anos: number | null;
     payback_meses: number | null;
     payback_texto_aproximado: string;
+    tempo_restante_meses: number;
+    tempo_decorrido_meses: number;
+    progresso_payback: number;
+    data_estimada_retorno: string;
+    parte_energetica_liquida: number;
+    houve_compensacao_integral: boolean;
+    mensagem_explicativa_fatura: string;
 }
 
 export interface FinalReportObject {
@@ -38,6 +45,7 @@ export interface FinalReportObject {
     concessionaria: string;
     uc: string;
     data_emissao_relatorio: string; // YYYY-MM-DD
+    data_emissao_fatura?: string; // DD/MM/YYYY
     fonte_geracao_utilizada: 'api' | 'manual';
     modo_relatorio: 'automatico' | 'manual_assistido';
     dados_entrada: {
@@ -50,6 +58,11 @@ export interface FinalReportObject {
             tarifa_kwh: number;
             custo_disponibilidade: number;
             tributos: number;
+            iluminacao_publica: number;
+        };
+        projeto: {
+            data_ativacao: string | null;
+            investimento: number;
         };
         geracao: {
             geracao_mes_kwh: number;
@@ -76,6 +89,10 @@ export function calculateFinalReport(
     gen: number,
     genSource: 'api' | 'manual' = 'api'
 ): FinalReportObject {
+    // 1. TARIFA DE REFERÊNCIA (Fallback inteligente)
+    // Se o parser falhou (0), usamos o valor do cliente. Se o cliente não tem, usamos 0.95.
+    const tarifa_referencia = bill.tariff_kwh || client.current_kwh_value || 0.95;
+
     const dados_entrada = {
         fatura: {
             consumo_kwh: bill.consumption,
@@ -83,10 +100,14 @@ export function calculateFinalReport(
             energia_compensada_kwh: bill.compensated_energy || 0,
             saldo_creditos_kwh: bill.credit_balance || 0,
             valor_total_fatura: bill.total_value,
-            tarifa_kwh: bill.tariff_kwh || (bill.consumption > 0 ? (bill.total_value - (bill.street_lighting || 0)) / bill.consumption : 0),
+            tarifa_kwh: tarifa_referencia,
             custo_disponibilidade: bill.total_value > 0 ? 50 : 0,
             tributos: bill.total_value * 0.15,
             iluminacao_publica: bill.street_lighting || 0
+        },
+        projeto: {
+            data_ativacao: client.activation_date || null,
+            investimento: client.investment || 0
         },
         geracao: {
             geracao_mes_kwh: gen,
@@ -95,40 +116,78 @@ export function calculateFinalReport(
         },
         financeiro: {
             investimento_inicial: client.investment || 0,
-            valor_kwh_atual: client.current_kwh_value || bill.tariff_kwh || 0.95,
+            valor_kwh_atual: tarifa_referencia,
             ciclo_meses: 1
         }
     };
 
-    // 1. FATURA ANTIGA RECALCULADA (SEM SOLAR)
-    // Se não tivesse solar, ele pagaria pelo consumo integral + iluminação pública
-    const fatura_antiga_corrigida = (dados_entrada.fatura.consumo_kwh * dados_entrada.fatura.tarifa_kwh) + dados_entrada.fatura.iluminacao_publica;
+    // 1. FATURA ANTIGA RECALCULADA (BASELINE SEM SOLAR)
+    // REGRA 1: Se o usuário preencheu o "Marco Zero" manualmente (baseline_bill_value), usamos ele como fatura_antiga.
+    // REGRA 2: Se não houver Marco Zero, recalculamos com base no (Rede + Compensado) * Tarifa
+    const baseline_manual = (client as any).baseline_bill_value;
+    const consumo_total_estimado = (dados_entrada.fatura.consumo_kwh || 0) + (dados_entrada.fatura.energia_compensada_kwh || 0);
+
+    // Se temos o valor manual, usamos ele. Caso contrário, usamos o cálculo teórico do medidor.
+    const fatura_antiga_corrigida = (baseline_manual !== undefined && baseline_manual !== null && baseline_manual > 0)
+        ? baseline_manual
+        : (consumo_total_estimado * (dados_entrada.fatura.tarifa_kwh || 0)) + (dados_entrada.fatura.iluminacao_publica || 0);
 
     // 2. FATURA ATUAL COM SOLAR
     const fatura_atual_com_solar = dados_entrada.fatura.valor_total_fatura;
 
     // 3. ECONOMIA MENSAL REAL
-    // A economia é baseada no que foi compensado + o que ele deixou de pagar
-    const economia_mensal = Math.max(0, (dados_entrada.fatura.energia_compensada_kwh * dados_entrada.fatura.tarifa_kwh));
+    // Formula: economiaMensal = valor_antigo - valor_atual
+    const economia_mensal = Math.max(0, fatura_antiga_corrigida - fatura_atual_com_solar);
 
     // 4. REDUÇÃO DA FATURA (%)
+    // Formula: reducaoPercentual = (economiaMensal / valor_antigo) * 100
     const reducao_percentual = fatura_antiga_corrigida > 0 ? (economia_mensal / fatura_antiga_corrigida) * 100 : null;
 
-    // 5. ECONOMIA NO CICLO (1 mes no MVP)
-    const economia_ciclo = economia_mensal;
+    // 5. ECONOMIA NO CICLO
+    // Formula: economiaCiclo = economiaMensal * ciclo_meses
+    const economia_ciclo = economia_mensal * dados_entrada.financeiro.ciclo_meses;
 
     // 6. SALDO ACUMULADO EM CRÉDITOS (kWh)
     const saldo_creditos_kwh = dados_entrada.fatura.saldo_creditos_kwh;
 
     // 7. EQUIVALENTE EM REAIS DOS CRÉDITOS
+    // Formula: valorCreditos = creditos_kwh * valor_kwh
     const creditos_em_reais = saldo_creditos_kwh * dados_entrada.financeiro.valor_kwh_atual;
 
     // 8. RESULTADO TOTAL DO PROJETO
+    // Formula: resultadoTotal = economiaCiclo + valorCreditos
     const resultado_total = economia_ciclo + creditos_em_reais;
 
-    // 9. PAYBACK
+    // 9. CÁLCULO DE PAYBACK (PÁGINA 12 DO PRD)
     const payback_anos = economia_mensal > 0 ? (dados_entrada.financeiro.investimento_inicial / (economia_mensal * 12)) : null;
-    const payback_meses = payback_anos ? Math.round(payback_anos * 12) : null;
+    const payback_meses = payback_anos ? payback_anos * 12 : null;
+
+    // 9.1 PAYBACK DINÂMICO (Versão Final Unificada)
+    let tempo_decorrido_meses = 0;
+    let tempo_restante_meses = 0;
+    let progresso_payback = 0;
+    let data_estimada_retorno = "A definir";
+
+    if (payback_meses && client.activation_date) {
+        const hoje = new Date();
+        const inicio = new Date(client.activation_date);
+
+        // Tempo já passou desde a ativação
+        tempo_decorrido_meses = (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth());
+        if (tempo_decorrido_meses < 0) tempo_decorrido_meses = 0;
+
+        // Tempo que ainda falta
+        tempo_restante_meses = Math.max(payback_meses - tempo_decorrido_meses, 0);
+
+        // % Concluído
+        progresso_payback = Math.min((tempo_decorrido_meses / payback_meses) * 100, 100);
+
+        // Data Estimada (Mês/Ano)
+        const dRetorno = new Date(inicio);
+        dRetorno.setMonth(dRetorno.getMonth() + Math.round(payback_meses));
+        data_estimada_retorno = dRetorno.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').toUpperCase();
+    }
+
     let payback_texto_aproximado = 'N/A';
     if (payback_anos) {
         const anos = Math.floor(payback_anos);
@@ -145,7 +204,18 @@ export function calculateFinalReport(
         tempo_sistema_ativo = diffMonths >= 12 ? `${Math.floor(diffMonths / 12)} anos` : `${diffMonths} meses`;
     }
 
-    const resultado: any = {
+    // 10. REGRAS DE COMPENSAÇÃO (GD2 / EQUATORIAL)
+    const parte_energetica_liquida = Math.max(0, fatura_atual_com_solar - (dados_entrada.fatura.iluminacao_publica || 0));
+    const houve_compensacao_integral = (dados_entrada.fatura.energia_compensada_kwh || 0) >= (dados_entrada.fatura.consumo_kwh || 0);
+
+    let mensagem_explicativa_fatura = "";
+    if (houve_compensacao_integral) {
+        mensagem_explicativa_fatura = "Consumo integralmente compensado. Ainda assim, permanecem cobranças remanescentes associadas a CIP, tributos, encargos GD2 e regras tarifárias da distribuidora.";
+    } else {
+        mensagem_explicativa_fatura = "Compensação parcial do consumo. Parte da energia consumida foi abatida por créditos, mas ainda houve cobrança de energia e demais encargos.";
+    }
+
+    const resultado: ReportResult & { tempo_sistema_ativo: string } = {
         tempo_sistema_ativo,
         fatura_antiga_corrigida,
         fatura_atual_com_solar,
@@ -157,26 +227,46 @@ export function calculateFinalReport(
         resultado_total,
         payback_anos,
         payback_meses,
-        payback_texto_aproximado
+        payback_texto_aproximado,
+        tempo_restante_meses,
+        tempo_decorrido_meses,
+        progresso_payback,
+        data_estimada_retorno,
+        parte_energetica_liquida,
+        houve_compensacao_integral,
+        mensagem_explicativa_fatura
     };
 
-    // IQSIGHTS
+    // MOTOR DE INSIGHTS (INTELIGÊNCIA)
     const insights_operacionais: string[] = [];
-    if (economia_mensal > 0) insights_operacionais.push("Redução de custos no período");
-    if ((reducao_percentual || 0) >= 50) insights_operacionais.push("Maior previsibilidade financeira");
-    if (saldo_creditos_kwh > 0) insights_operacionais.push("Melhor aproveitamento da energia");
+    if (reducao_percentual && reducao_percentual > 80) {
+        insights_operacionais.push("Alta redução de custos detectada");
+    } else if (economia_mensal > 0) {
+        insights_operacionais.push("Redução de custos no período");
+    }
+
+    if (payback_anos && payback_anos < 3) {
+        insights_operacionais.push("Retorno rápido do investimento");
+    }
+
+    if (saldo_creditos_kwh > 0) {
+        insights_operacionais.push("Geração de créditos energéticos");
+    }
 
     // VALIDATION FLAGS
     const flags_validacao: string[] = [];
     if (gen < dados_entrada.fatura.energia_compensada_kwh * 0.5) flags_validacao.push("VERIFICAR: Geração muito baixa p/ compensação");
     if (fatura_atual_com_solar > fatura_antiga_corrigida) flags_validacao.push("ANOMALIA: Fatura atual maior que antiga");
 
-    // CONCLUSÃO EXECUTIVA
-    let conclusao_executiva = "Os dados apontam potencial de resultado, porém é necessária validação complementar para conclusão definitiva.";
-    if (economia_mensal > 0 && (reducao_percentual || 0) >= 30) {
-        conclusao_executiva = "O projeto apresenta forte viabilidade econômica, com redução expressiva da fatura, geração de créditos energéticos e retorno atrativo do investimento.";
+    // CONCLUSÃO EXECUTIVA (AUTOMÁTICA BASEADA EM INDICADORES)
+    let conclusao_executiva = "O projeto apresenta potencial de resultado, com monitoramento ativo e perspectiva positiva de retorno.";
+
+    if ((reducao_percentual || 0) > 70 && (payback_anos || 10) < 5 && saldo_creditos_kwh > 0) {
+        conclusao_executiva = "O projeto apresenta alta economia, retorno rápido e geração consistente de créditos, demonstrando forte viabilidade financeira.";
+    } else if (economia_mensal > 0 && (reducao_percentual || 0) >= 30) {
+        conclusao_executiva = "O projeto apresenta uma redução expressiva da fatura e geração consistente de créditos, consolidando-se como um investimento de alta performance.";
     } else if (economia_mensal > 0) {
-        conclusao_executiva = "O projeto demonstra resultado consistente, com redução de custos e perspectiva positiva de retorno no médio prazo.";
+        conclusao_executiva = "O projeto demonstra resultado consistente, com redução de custos e perspectiva positiva de valorização do investimento no médio prazo.";
     }
 
     return {
@@ -186,6 +276,7 @@ export function calculateFinalReport(
         concessionaria: "Equatorial Pará", // Mock or fallback
         uc: client.uc,
         data_emissao_relatorio: new Date().toISOString().split('T')[0],
+        data_emissao_fatura: bill.issue_date ? new Date(bill.issue_date).toLocaleDateString('pt-BR') : undefined,
         fonte_geracao_utilizada: genSource,
         modo_relatorio: genSource === 'api' ? 'automatico' : 'manual_assistido',
         dados_entrada,

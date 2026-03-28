@@ -46,7 +46,7 @@ function App() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [showXLSImportModal, setShowXLSImportModal] = useState(false);
     const [isSavingClient, setIsSavingClient] = useState(false);
-    const [newClientForm, setNewClientForm] = useState({ name: '', uc: '', platform: 'APsystems', system_id: '', investment: 0, current_kwh_value: 0.95 });
+    const [newClientForm, setNewClientForm] = useState({ name: '', uc: '', platform: 'APsystems', system_id: '', investment: 0, current_kwh_value: 0.95, activation_date: '' });
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [isCollapsed, setIsCollapsed] = useState(false);
@@ -236,20 +236,44 @@ function App() {
         } catch (err: any) { alert(`Erro ao salvar: ${err.message}`); }
     };
 
+    const formatDateToISO = (val: any) => {
+        if (!val || typeof val !== 'string') return undefined;
+        if (!val.includes('/')) return val;
+        const parts = val.split('/');
+        if (parts.length !== 3) return val;
+        const [d, m, y] = parts;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    };
+
     const handleSaveEdit = async () => {
         if (!selectedClientId) return;
         const ac = enrichedClients.find(c => c.id === selectedClientId)!;
         const existingBill = ac.latestBill;
-        const { generation, ...billData } = editData as any;
+        const {
+            generation,
+            investment,
+            activation_date,
+            baseline_bill_value,
+            baseline_bill_date,
+            ...billData
+        } = editData as any;
 
         try {
-            if (existingBill?.id) await updateBill(existingBill.id, billData);
-            else await createBill({ ...billData, client_id: selectedClientId });
+            const formattedBillData = {
+                ...billData,
+                issue_date: formatDateToISO(billData.issue_date)
+            };
 
-            // Sempre atualizamos o cliente para registrar a "Última atualização" de dados
+            if (existingBill?.id) await updateBill(existingBill.id, formattedBillData);
+            else await createBill({ ...formattedBillData, client_id: selectedClientId });
+
             await updateClient(selectedClientId, {
                 updated_at: new Date().toISOString(),
-                ...(generation !== undefined ? { last_generation: generation } : {})
+                ...(generation !== undefined ? { last_generation: generation } : {}),
+                investment: investment ? parseFloat(String(investment)) : undefined,
+                activation_date: formatDateToISO(activation_date),
+                baseline_bill_value: baseline_bill_value ? parseFloat(String(baseline_bill_value)) : undefined,
+                baseline_bill_date: formatDateToISO(baseline_bill_date),
             });
 
             if (generation !== undefined && generation !== ac.generation) {
@@ -278,9 +302,27 @@ function App() {
         if (!selectedClientId) return;
         const ac = enrichedClients.find(c => c.id === selectedClientId);
         const bill = ac?.latestBill;
-        setEditData(bill ? { ...bill } : {
+
+        const investment = ac?.investment;
+        const activation_date = ac?.activation_date ? ac.activation_date.split('-').reverse().join('/') : '';
+        const baseline_bill_value = ac?.baseline_bill_value;
+        const baseline_bill_date = ac?.baseline_bill_date ? ac.baseline_bill_date.split('-').reverse().join('/') : '';
+
+        setEditData(bill ? {
+            ...bill,
+            issue_date: bill.issue_date ? String(bill.issue_date).split('-').reverse().join('/') : '',
+            investment,
+            activation_date,
+            baseline_bill_value,
+            baseline_bill_date
+        } : {
             client_id: selectedClientId, competency: 'MAR/2026', total_value: 0, consumption: 0,
-            compensated_energy: 0, credit_balance: 0, injected_energy: 0, tariff_kwh: 0.95, confidence: 0.5
+            compensated_energy: 0, credit_balance: 0, injected_energy: 0, tariff_kwh: 0.95, confidence: 0.5,
+            issue_date: '',
+            investment,
+            activation_date,
+            baseline_bill_value,
+            baseline_bill_date
         } as any);
         setIsEditing(true);
     };
@@ -403,8 +445,7 @@ function App() {
                                             <span className="hide-mobile" style={{ marginLeft: '6px' }}>{isSyncingAPI ? 'Sincronizando...' : 'Atualizar Dados'}</span>
                                         </button>
 
-                                        <div style={{ width: '1px', height: '20px', background: 'var(--color-border)', margin: '0 4px' }} />
-                                        <button onClick={refetchClients} className="btn-icon" title="Recarregar do Banco"><RefreshCw size={18} /></button>
+
                                         <button className="btn-icon" style={{ position: 'relative' }}>
                                             <Bell size={20} />
                                             {enrichedClients.filter(c => c.status === 'Incompleto').length > 0 && <div className="badge-dot" />}
