@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Download, Sun, Edit3, RefreshCw, FileUp, Clock, ExternalLink, Eye, X, Plus } from 'lucide-react';
+import { ChevronLeft, Download, Sun, Edit3, RefreshCw, FileUp, Clock, ExternalLink, Eye, X, Plus, MessageCircle } from 'lucide-react';
 import { ActiveClient, FinalReportObject, getEmaPortalLink } from '../utils/solarHelpers';
 import ExecutiveReport from './ExecutiveReport';
 import { Bill } from '../hooks/useBills';
@@ -260,6 +260,41 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', padding: '20px' }}>
                         <button className="btn" style={{ padding: '12px 32px', background: '#374151', color: '#fff', borderRadius: '8px' }} onClick={() => setShowReviewModal(false)}>Voltar para Auditoria</button>
+                        <button
+                            className="btn"
+                            style={{ padding: '12px 32px', background: '#25D366', color: '#fff', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                            onClick={async () => {
+                                if (!selectedStats) return;
+                                const { resultado, cliente, competencia } = selectedStats;
+                                const message = `🚀 *Relatório Executivo Watts Solar*\n\n` +
+                                    `Olá! Segue o resumo do desempenho solar para *${cliente}* (Comp.: ${competencia}):\n\n` +
+                                    `📉 *Economia no Mês:* R$ ${resultado.economia_mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+                                    `✅ *Redução Real:* ${resultado.reducao_percentual?.toFixed(1).replace('.', ',') || '0'}%\n` +
+                                    `💰 *Resultado Total:* R$ ${resultado.resultado_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n` +
+                                    `_Gerado automaticamente por Watts - Dados Inteligentes._`;
+
+                                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                                if (isMobile && navigator.share) {
+                                    try {
+                                        const { generateClientReport } = await import('../utils/reportGenerator');
+                                        const pdfBlob = await generateClientReport('executive-report-template', selectedStats, false);
+                                        if (pdfBlob) {
+                                            const file = new File([pdfBlob], `relatorio_${cliente.replace(/\s/g, '_')}_${competencia.replace(/\//g, '-')}.pdf`, { type: 'application/pdf' });
+                                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                                await navigator.share({ files: [file], title: `Relatório Solar - ${cliente}`, text: message });
+                                                return;
+                                            }
+                                        }
+                                    } catch (err) { console.warn('Share API falhou, usando wa.me...', err); }
+                                }
+
+                                // No desktop ou falha no share, abre diretamente o link do whatsapp
+                                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
+                            }}
+                        >
+                            <MessageCircle size={18} /> WhatsApp / Enviar
+                        </button>
                         <button className="btn btn-primary" style={{ padding: '12px 32px', borderRadius: '8px' }} onClick={() => { handleExportPDF(selectedAC); setShowReviewModal(false); }}>Baixar PDF</button>
                     </div>
                 </div>

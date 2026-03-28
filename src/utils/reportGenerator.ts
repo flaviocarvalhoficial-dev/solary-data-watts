@@ -13,19 +13,27 @@ export const generateClientReport = async (elementId: string, data: FinalReportO
         backgroundColor: '#ffffff'
     });
 
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    // Converte para JPEG com qualidade controlada (0.8) para reduzir tamanho do arquivo significativamente
+    const imgData = canvas.toDataURL('image/jpeg', 0.8);
 
-    // A4 height is 297mm. If report is longer, it will scale down or we could split.
-    // For now, we capture as one high-qual block.
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(297, pdfHeight));
+    // Target standard A4 width (210mm) but calculate dynamic height to avoid distortion
+    const pdfWidth = 210;
+    const canvasRatio = canvas.height / canvas.width;
+    const pdfHeight = pdfWidth * canvasRatio;
+
+    // Criamos um documento com a altura real do conteúdo para evitar que fique achatado
+    const finalPdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [pdfWidth, pdfHeight],
+        compress: true
+    });
+
+    finalPdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
 
     if (save) {
-        pdf.save(`relatorio_${data.cliente.replace(/\s/g, '_')}_${data.competencia.replace(/\//g, '-')}.pdf`);
+        finalPdf.save(`relatorio_${data.cliente.replace(/\s/g, '_')}_${data.competencia.replace(/\//g, '-')}.pdf`);
     }
 
-    return pdf.output('blob');
+    return finalPdf.output('blob');
 };
