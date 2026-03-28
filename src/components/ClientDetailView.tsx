@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Download, Sun, Edit3, RefreshCw, FileUp, Clock, ExternalLink, Eye, X, Plus, MessageCircle } from 'lucide-react';
+import { ChevronLeft, Download, Sun, Edit3, RefreshCw, FileUp, Clock, ExternalLink, Eye, X, Plus, MessageCircle, AlertCircle } from 'lucide-react';
 import { ActiveClient, FinalReportObject, getEmaPortalLink } from '../utils/solarHelpers';
 import ExecutiveReport from './ExecutiveReport';
 import { Bill } from '../hooks/useBills';
@@ -166,7 +166,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         {selectedStats && (
                             <div style={{ background: 'rgba(232, 89, 60, 0.05)', padding: '12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(232, 89, 60, 0.1)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>
-                                    <AlertTriangle size={14} /> Cobranças Residuais
+                                    <AlertCircle size={14} /> Cobranças Residuais
                                 </div>
                                 <p style={{ fontSize: '10.5px', color: 'var(--color-text-secondary)', lineHeight: '1.4', margin: 0 }}>
                                     Mesmo com consumo compensado, a fatura mantém custos de CIP, tributos e encargos GD2. <b>Economia Real: R$ {selectedStats.resultado.economia_mensal.toLocaleString('pt-BR')}</b>.
@@ -182,6 +182,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                         { label: 'Consumo', value: `${(selectedBill.consumption || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
                                         { label: 'Compensado', value: `${(selectedBill.compensated_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
                                         { label: 'Injetada', value: `${(selectedBill.injected_energy || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` },
+                                        { label: 'Saldo Créditos', value: `${(selectedBill.credit_balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })} kWh` + (selectedStats ? ` (R$ ${selectedStats.resultado.creditos_em_reais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})` : '') },
                                         { label: 'Tarifa', value: `R$ ${(selectedBill.tariff_kwh || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 })}` },
                                         { label: 'CIP/Iluminação', value: `R$ ${(selectedBill.street_lighting || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` },
                                         { label: 'Total a Pagar', value: `R$ ${selectedBill.total_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, primary: true },
@@ -191,7 +192,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                             justifyContent: 'space-between',
                                             alignItems: 'center',
                                             padding: '8px 0',
-                                            borderBottom: idx === 6 ? 'none' : '1px solid var(--color-border-light)'
+                                            borderBottom: idx === 7 ? 'none' : '1px solid var(--color-border-light)'
                                         }}>
                                             <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: 500 }}>{item.label}</span>
                                             <span style={{

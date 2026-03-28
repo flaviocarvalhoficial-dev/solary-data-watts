@@ -42,6 +42,7 @@ export function useBillUpload({ clients, systems, createClient, updateClient, cr
         await createBill({
             client_id: targetClientId,
             competency: parsed.competency,
+            generation: parsed.generation || 0,
             consumption: parsed.gridConsumption,
             compensated_energy: parsed.compensatedEnergy,
             credit_balance: parsed.creditBalance,
