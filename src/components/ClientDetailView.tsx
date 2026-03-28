@@ -9,6 +9,8 @@ import { BillEditModal } from './BillEditModal';
 import { KPIGrid } from './KPIGrid';
 import { PerformanceAnalysis } from './PerformanceAnalysis';
 import { ReportHistory } from './ReportHistory';
+import WattsButton from './ui/WattsButton';
+import StatusBadge from './ui/StatusBadge';
 
 interface ClientDetailViewProps {
     selectedAC: ActiveClient;
@@ -79,9 +81,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                 </a>
                             )}
                         </div>
-                        <span className={`badge badge-${selectedAC.status === 'Completo' ? 'success' : selectedAC.status === 'Divergente' ? 'warning' : 'danger'}`}>
-                            {selectedAC.status}
-                        </span>
+                        <StatusBadge status={selectedAC.status} />
                     </div>
                     <p style={{ color: 'var(--color-text-secondary)', fontSize: '13px', marginLeft: '38px', marginTop: '4px' }}>
                         Conta {selectedAC.uc} · <span style={{ color: 'var(--color-primary)', fontWeight: 500 }}>{selectedAC.platform}</span> · ID {selectedAC.system_id}
@@ -93,19 +93,19 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button className="btn btn-primary" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={() => setShowReviewModal(true)}>
-                        <Eye size={14} /> Revisar Relatório
-                    </button>
-                    <button className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={syncSystemsFromAPI} disabled={isSyncingAPI}>
-                        <RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} /> {isSyncingAPI ? 'Sincronizando' : 'Atualizar'}
-                    </button>
-                    <label className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <WattsButton variant="outline" icon={<Eye size={14} />} onClick={() => setShowReviewModal(true)}>
+                        Revisar Relatório
+                    </WattsButton>
+                    <WattsButton variant="outline" icon={<RefreshCw size={14} className={isSyncingAPI ? 'spin' : ''} />} onClick={syncSystemsFromAPI} disabled={isSyncingAPI}>
+                        {isSyncingAPI ? 'Sincronizando' : 'Atualizar'}
+                    </WattsButton>
+                    <label className="btn btn-outline" style={{ borderRadius: 'var(--radius-btn)', fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontWeight: 600 }}>
                         <Plus size={14} /> Enviar Fatura
                         <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
                     </label>
-                    <button className="btn btn-outline" style={{ borderRadius: '8px', fontSize: '13px' }} onClick={() => handleExportPDF(selectedAC)}>
-                        <Download size={14} /> Baixar PDF
-                    </button>
+                    <WattsButton variant="outline" icon={<Download size={14} />} onClick={() => handleExportPDF(selectedAC)}>
+                        Baixar PDF
+                    </WattsButton>
                 </div>
             </div>
 
@@ -133,13 +133,16 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Status Operacional</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                             {selectedBill && (
-                                <button
+                                <WattsButton
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => { if (confirm('Limpar dados desta competência?')) handleResetData(selectedAC.id); }}
-                                    style={{ background: 'none', border: 'none', color: 'var(--color-status-danger-text)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}
+                                    style={{ color: 'var(--color-status-danger-text)', fontWeight: 600, opacity: 0.8 }}
                                     title="Resetar Dados"
+                                    icon={<RefreshCw size={12} />}
                                 >
-                                    <RefreshCw size={12} /> Resetar
-                                </button>
+                                    Resetar
+                                </WattsButton>
                             )}
                             {selectedAC.sync_status === 'SYNCING' && (
                                 <span className="badge badge-warning" style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -151,9 +154,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                     Erro na Sincronização
                                 </span>
                             )}
-                            <span className={`badge ${selectedStats ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                                {selectedStats ? 'Dados Sincronizados' : 'Aguardando Dados'}
-                            </span>
+                            <StatusBadge status={selectedStats ? 'Completo' : 'Erro'} label={selectedStats ? 'Dados Sincronizados' : 'Aguardando Dados'} />
                         </div>
                     </div>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -209,12 +210,12 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         <div style={{ marginTop: 'auto', display: 'flex', gap: '8px' }}>
                             {selectedStats ? (
                                 <>
-                                    <button className="btn btn-outline" style={{ flex: 1, borderRadius: '8px' }} onClick={() => setShowReviewModal(true)}>
+                                    <WattsButton variant="outline" style={{ flex: 1 }} onClick={() => setShowReviewModal(true)}>
                                         Visualizar PDF Executivo
-                                    </button>
-                                    <button className="btn btn-outline" style={{ flex: 1, borderRadius: '8px' }} onClick={handleStartEdit} title="Editar Dados Manuais">
-                                        <Edit3 size={14} /> Editar Dados
-                                    </button>
+                                    </WattsButton>
+                                    <WattsButton variant="outline" style={{ flex: 1 }} onClick={handleStartEdit} title="Editar Dados Manuais" icon={<Edit3 size={14} />}>
+                                        Editar Dados
+                                    </WattsButton>
                                 </>
                             ) : (
                                 <div
@@ -274,11 +275,14 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', padding: '20px' }}>
-                        <button className="btn" style={{ padding: '12px 32px', background: '#374151', color: '#fff', borderRadius: '8px' }} onClick={() => setShowReviewModal(false)}>Voltar para Auditoria</button>
-                        <button
-                            className="btn"
-                            style={{ padding: '12px 32px', background: '#25D366', color: '#fff', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        <WattsButton variant="outline" style={{ paddingLeft: '32px', paddingRight: '32px' }} onClick={() => setShowReviewModal(false)}>
+                            Voltar para Auditoria
+                        </WattsButton>
+                        <WattsButton
+                            variant="primary"
+                            style={{ paddingLeft: '32px', paddingRight: '32px', background: '#25D366' }}
                             onClick={async () => {
+                                // ... (whatsapp logic)
                                 if (!selectedStats) return;
                                 const { resultado, cliente, competencia } = selectedStats;
                                 const message = `🚀 *Relatório Executivo Watts Solar*\n\n` +
@@ -307,10 +311,13 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
                                 // No desktop ou falha no share, abre diretamente o link do whatsapp
                                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
                             }}
+                            icon={<MessageCircle size={18} />}
                         >
-                            <MessageCircle size={18} /> WhatsApp / Enviar
-                        </button>
-                        <button className="btn btn-primary" style={{ padding: '12px 32px', borderRadius: '8px' }} onClick={() => { handleExportPDF(selectedAC); setShowReviewModal(false); }}>Baixar PDF</button>
+                            WhatsApp / Enviar
+                        </WattsButton>
+                        <WattsButton variant="primary" style={{ paddingLeft: '32px', paddingRight: '32px' }} onClick={() => { handleExportPDF(selectedAC); setShowReviewModal(false); }}>
+                            Baixar PDF
+                        </WattsButton>
                     </div>
                 </div>
             )}

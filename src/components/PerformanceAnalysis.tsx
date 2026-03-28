@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import WattsMascot from './WattsMascot';
 
 interface PerformanceAnalysisProps {
     generation: number;
@@ -12,10 +13,80 @@ export const PerformanceAnalysis: React.FC<PerformanceAnalysisProps> = ({
     generation, compensatedEnergy, gridConsumption, injectedEnergy, history = []
 }) => {
     const [viewType, setViewType] = useState<'bar' | 'line'>('bar');
+    const [activeSlide, setActiveSlide] = useState(0);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [containerHeight, setContainerHeight] = useState(260);
 
     // Cálculos de Balanço Energético
     const autoconsumo = Math.max(generation - injectedEnergy, 0);
     const consumoTotal = autoconsumo + gridConsumption;
+
+    const slides = [
+        {
+            tag: 'Impacto Ambiental',
+            content: (
+                <div style={{ display: 'flex', gap: '24px', marginTop: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>CO2 Evitado</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                            {(generation * 0.403).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '10px' }}>kg</span>
+                        </span>
+                    </div>
+                    <div style={{ width: '1px', height: '24px', background: 'var(--color-border-light)', alignSelf: 'center' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Árvores Salvas</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                            {(generation * 0.012).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
+                        </span>
+                    </div>
+                    <div style={{ width: '1px', height: '24px', background: 'var(--color-border-light)', alignSelf: 'center' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Autossuficiência</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#10b981' }}>
+                            {Math.min((generation / (consumoTotal || 1)) * 100, 100).toFixed(0)}%
+                        </span>
+                    </div>
+                </div>
+            )
+        },
+        {
+            tag: 'Insight do Watts',
+            content: (
+                <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
+                    {(generation >= consumoTotal)
+                        ? "Excelente! Sua usina produziu o suficiente para cobrir todo o consumo. Você está gerando lucro!"
+                        : "Quase lá! Sua produção solar cobriu a maior parte do seu gasto de energia este mês."}
+                </div>
+            )
+        },
+        {
+            tag: 'Dica de Eficiência',
+            content: (
+                <div style={{ marginTop: '8px', fontSize: '13px', fontWeight: 500, color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
+                    💡 <span style={{ fontWeight: 600 }}>Dica:</span> Tente concentrar o uso de aparelhos pesados entre 10h e 15h para maximizar o uso direto da energia solar.
+                </div>
+            )
+        }
+    ];
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setActiveSlide(prev => (prev + 1) % slides.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, [slides.length]);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                // Diminuímos os paddings vertical (32+32) para a área útil
+                setContainerHeight(entry.contentRect.height);
+            }
+        });
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     // Lógica para o Gráfico de Linha Dinâmico
     const renderLineChart = () => {
@@ -78,7 +149,7 @@ export const PerformanceAnalysis: React.FC<PerformanceAnalysisProps> = ({
     };
 
     return (
-        <div className="card" style={{ padding: '24px' }}>
+        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-secondary)' }}>Análise de Desempenho</h3>
                 <div style={{ display: 'flex', background: 'var(--color-bg-base)', padding: '2px', borderRadius: '8px' }}>
@@ -96,17 +167,17 @@ export const PerformanceAnalysis: React.FC<PerformanceAnalysisProps> = ({
             </div>
 
             {viewType === 'bar' ? (
-                <div style={{ position: 'relative', height: '300px', background: 'var(--color-bg-base)', borderRadius: '12px', padding: '48px 16px 48px 56px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', border: '1px solid var(--color-border-light)' }}>
+                <div ref={containerRef} style={{ position: 'relative', flex: 1, minHeight: '260px', background: 'var(--color-bg-base)', borderRadius: '12px', padding: '32px 16px 40px 56px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', border: '1px solid var(--color-border-light)' }}>
 
                     {/* Linhas de Grade e Eixo Y */}
                     {(() => {
                         const maxValRaw = Math.max(generation, consumoTotal, gridConsumption, 100);
-                        const maxChartVal = maxValRaw * 1.4; // 40% de headroom para as etiquetas não encostarem no topo
-                        const chartAreaHeight = 180; // Altura útil reservada para as barras
+                        const maxChartVal = maxValRaw * 1.4;
+                        const chartAreaHeight = containerHeight - 32 - 48; // Padding top (32) + Espaço labels (48)
 
                         return (
                             <>
-                                <div style={{ position: 'absolute', inset: `48px 16px ${300 - 48 - chartAreaHeight}px 56px`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
+                                <div style={{ position: 'absolute', inset: `32px 16px ${containerHeight - 32 - chartAreaHeight}px 56px`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
                                     {[1, 0.75, 0.5, 0.25, 0].map((tick, i) => (
                                         <div key={i} style={{ width: '100%', height: '1px', background: 'var(--color-border)', opacity: 0.2, position: 'relative' }}>
                                             <span style={{ position: 'absolute', left: '-44px', top: '-6px', fontSize: '9px', fontWeight: 700, color: 'var(--color-text-muted)' }}>
@@ -173,7 +244,7 @@ export const PerformanceAnalysis: React.FC<PerformanceAnalysisProps> = ({
                                     </div>
 
                                     {/* Card de Balanço (28% da largura) */}
-                                    <div style={{ flex: 2.8, height: '100%', paddingLeft: '24px', display: 'flex', alignItems: 'center' }}>
+                                    <div style={{ flex: 2.8, height: '100%', paddingLeft: '24px', display: 'flex', alignItems: 'flex-start', paddingTop: '16px' }}>
                                         <div style={{
                                             width: '100%',
                                             background: 'var(--color-bg-muted)',
@@ -249,6 +320,82 @@ export const PerformanceAnalysis: React.FC<PerformanceAnalysisProps> = ({
                     {renderLineChart()}
                 </div>
             )}
+
+            {/* FASE 6: MASCOTE + INSIGHTS CAROUSEL */}
+            <div style={{
+                marginTop: '24px',
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'center',
+                background: 'rgba(99, 102, 241, 0.03)',
+                padding: '16px 20px',
+                borderRadius: '16px',
+                border: '1px solid rgba(99, 102, 241, 0.08)',
+                minHeight: '100px',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <div style={{ flexShrink: 0, position: 'relative', zIndex: 2 }}>
+                    <div style={{
+                        position: 'absolute',
+                        inset: '-10px',
+                        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)',
+                        borderRadius: '50%',
+                        zIndex: -1
+                    }} />
+                    <WattsMascot
+                        state={(generation - consumoTotal) >= 0 ? 'feliz' : 'normal'}
+                        size={70}
+                    />
+                </div>
+
+                <div style={{ flex: 1, position: 'relative', zIndex: 2 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                color: 'var(--color-primary)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                background: 'rgba(99, 102, 241, 0.1)',
+                                padding: '2px 8px',
+                                borderRadius: '10px'
+                            }}>
+                                {slides[activeSlide].tag}
+                            </span>
+                            <div style={{ flex: 1, height: '1px', background: 'var(--color-border-light)' }} />
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {slides.map((_, i) => (
+                                    <div key={i} style={{
+                                        width: i === activeSlide ? '12px' : '4px',
+                                        height: '4px',
+                                        borderRadius: '2px',
+                                        background: i === activeSlide ? 'var(--color-primary)' : 'var(--color-border)',
+                                        transition: 'all 0.3s ease'
+                                    }} />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div key={activeSlide} style={{ animation: 'fade-in-slide 0.5s ease-out' }}>
+                            {slides[activeSlide].content}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Decorative background element */}
+                <div style={{
+                    position: 'absolute',
+                    right: '-20px',
+                    bottom: '-20px',
+                    width: '100px',
+                    height: '100px',
+                    background: 'var(--color-primary)',
+                    opacity: 0.03,
+                    borderRadius: '50%'
+                }} />
+            </div>
         </div>
     );
 };

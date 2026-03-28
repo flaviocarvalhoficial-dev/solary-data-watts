@@ -1,8 +1,10 @@
 import React from 'react';
-import { Users, Zap, TrendingUp, AlertCircle, RefreshCw, ChevronRight, FileArchive } from 'lucide-react';
+import { Users, Zap, TrendingUp, AlertCircle, RefreshCw, ChevronRight, FileArchive, Battery, DollarSign } from 'lucide-react';
 import { ActiveClient } from '../utils/solarHelpers';
 import { FleetHistoryEntry } from '../hooks/useFleetHistory';
 import WattsMascot from './WattsMascot';
+import StatCard from './ui/StatCard';
+import StatusBadge from './ui/StatusBadge';
 
 interface DashboardViewProps {
     clients: any[];
@@ -73,106 +75,56 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* KPI Grid - 4 Columns with Animated Wide Charts */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
-                <style>{`
-                    @keyframes slideUp { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
-                    @keyframes drawPath { from { stroke-dashoffset: 200; } to { stroke-dashoffset: 0; } }
-                    @keyframes pulseGlow { 0% { opacity: 0.4; } 50% { opacity: 0.7; } 100% { opacity: 0.4; } }
-                    .kpi-bar { transform-origin: bottom; animation: slideUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-                    .kpi-line { stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawPath 2s ease-out forwards; }
-                `}</style>
-
-                {/* CARD 1: TOTAL SISTEMAS (Wide Area Line) */}
-                <div className="card" data-tooltip="Número total de sistemas fotovoltaicos cadastrados e monitorados na sua frota." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                    <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Total de Sistemas</div>
-                        <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{clients.length}</div>
-                        <div style={{ marginTop: '12px' }}>
-                            <span className="badge badge-success" style={{ fontSize: '11px', padding: '4px 10px' }}>↑ 4% crescimento</span>
-                        </div>
-                    </div>
-                    {/* Wider Lateral Chart */}
-                    <div style={{ position: 'absolute', right: '0', top: '16px', bottom: '56px', width: '45%', pointerEvents: 'none', paddingRight: '16px' }}>
+                <StatCard
+                    label="Total de Sistemas"
+                    value={clients.length}
+                    trend={{ label: '↑ 4% crescimento', type: 'success' }}
+                    tooltip="Número total de sistemas fotovoltaicos cadastrados e monitorados na sua frota."
+                    chart={
                         <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none">
                             <path d={generatePath()} fill="none" stroke="var(--color-primary)" strokeWidth="3" strokeLinecap="round" className="kpi-line" />
                             <path d={`${generatePath()} L 100 60 L 0 60 Z`} fill="var(--color-primary-muted)" style={{ opacity: 0.15 }} />
                         </svg>
-                    </div>
-                    <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
-                        <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }} onClick={e => { e.preventDefault(); setActiveTab('Clients'); }}>
-                            Ver Detalhes <ChevronRight size={14} style={{ marginLeft: '4px' }} />
-                        </a>
-                    </div>
-                </div>
+                    }
+                    onClickDetail={() => setActiveTab('Clients')}
+                />
 
-                {/* CARD 2: GERAÇÃO HOJE (Wide Staggered Bars) */}
-                <div className="card" data-tooltip="Energia total gerada por todos os seus sistemas nas últimas 24 horas." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Geração Hoje</div>
-                        <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                            {enrichedClients.reduce((acc, curr) => acc + (curr.energy_today || 0), 0).toFixed(1)} <span style={{ fontSize: '16px', fontWeight: 400 }}>kWh</span>
+                <StatCard
+                    label="Geração Hoje"
+                    value={`${enrichedClients.reduce((acc, curr) => acc + (curr.energy_today || 0), 0).toFixed(1)} kWh`}
+                    trend={{ label: '↑ Alta Performance', type: 'success' }}
+                    tooltip="Energia total gerada por todos os seus sistemas nas últimas 24 horas."
+                    chart={
+                        <div style={{ position: 'absolute', right: '0', top: '0', bottom: '0', display: 'flex', alignItems: 'flex-end', gap: '4px', width: '100%', opacity: 0.8 }}>
+                            {enrichedClients.slice(0, 8).map((c, i) => {
+                                const val = c.energy_today || 0;
+                                const h = `${Math.max(15, Math.min(100, (val / 12) * 100))}%`;
+                                return (
+                                    <div key={c.id} className="kpi-bar" style={{ flex: 1, minWidth: '4px', borderRadius: '4px', height: h, transition: 'all 0.3s', animationDelay: `${0.1 * i}s` }}>
+                                        <div style={{ height: '100%', background: 'linear-gradient(to top, var(--color-primary), var(--color-primary-muted))', borderRadius: '4px' }} />
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div style={{ marginTop: '12px' }}>
-                            <span className="badge" style={{ background: 'var(--color-status-success-bg)', color: 'var(--color-status-success-text)', fontSize: '11px', padding: '4px 10px' }}>↑ Alta Performance</span>
-                        </div>
-                    </div>
-                    {/* Wider Lateral Responsive Dynamic Bars */}
-                    <div style={{ position: 'absolute', right: '16px', top: '24px', bottom: '56px', display: 'flex', alignItems: 'flex-end', gap: '4px', width: '40%', opacity: 0.8 }}>
-                        {enrichedClients.slice(0, 8).map((c, i) => {
-                            const val = c.energy_today || 0;
-                            const h = `${Math.max(15, Math.min(100, (val / 12) * 100))}%`;
-                            return (
-                                <div key={c.id} className="kpi-bar" style={{ flex: 1, minWidth: '4px', borderRadius: '4px', height: h, transition: 'all 0.3s', animationDelay: `${0.1 * i}s` }}>
-                                    <div style={{ height: '100%', background: 'linear-gradient(to top, var(--color-primary), var(--color-primary-muted))', borderRadius: '4px' }} />
-                                </div>
-                            );
-                        })}
-                    </div>
-                    <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
-                        <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                            Dados Globais <ChevronRight size={14} style={{ marginLeft: '4px' }} />
-                        </a>
-                    </div>
-                </div>
+                    }
+                />
 
-                {/* CARD 3: ECONOMIA PROJETADA (Financial Pulse) */}
-                <div className="card" data-tooltip="Economia financeira total estimada para o período selecionado em todos os sistemas da frota." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                    <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Economia no Mês</div>
-                        <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-primary)' }}>R$ {totalEconomy.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
-                        <div style={{ marginTop: '12px' }}>
-                            <span className="badge badge-success" style={{ fontSize: '11px', padding: '4px 10px' }}>Alta Rentabilidade</span>
-                        </div>
-                    </div>
-                    <div style={{ position: 'absolute', right: '16px', top: '24px', bottom: '56px', width: '40%', opacity: 0.15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <TrendingUp size={64} style={{ color: 'var(--color-primary)' }} />
-                    </div>
-                    <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
-                        <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                            Visualizar ROI <ChevronRight size={14} style={{ marginLeft: '4px' }} />
-                        </a>
-                    </div>
-                </div>
+                <StatCard
+                    label="Economia no Mês"
+                    value={`R$ ${totalEconomy.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                    trend={{ label: 'Alta Rentabilidade', type: 'success' }}
+                    tooltip="Economia financeira total estimada para o período selecionado em todos os sistemas da frota."
+                    color="var(--color-primary)"
+                    icon={<TrendingUp size={64} style={{ color: 'var(--color-primary)' }} />}
+                />
 
-                {/* CARD 4: CRÉDITOS ACUMULADOS (Zap Area) */}
-                <div className="card" data-tooltip="Total de créditos de energia acumulados na sua frota para uso futuro." style={{ padding: '24px', position: 'relative', minHeight: '160px', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ flex: 1, position: 'relative', zIndex: 2, maxWidth: '55%' }}>
-                        <div style={{ color: 'var(--color-text-secondary)', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Créditos em Frota</div>
-                        <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                            {totalCreditsKwh.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} <span style={{ fontSize: '14px', fontWeight: 400 }}>kWh</span>
-                        </div>
-                        <div style={{ marginTop: '12px' }}>
-                            <span className="badge" style={{ background: 'var(--color-primary-muted)', color: 'var(--color-primary)', fontSize: '11px', padding: '4px 10px' }}>Reserva Energética</span>
-                        </div>
-                    </div>
-                    <div style={{ position: 'absolute', right: '16px', top: '24px', bottom: '56px', width: '40%', opacity: 0.1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Zap size={64} style={{ color: 'var(--color-primary)' }} />
-                    </div>
-                    <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'center' }}>
-                        <a href="#" style={{ fontSize: '12px', color: 'var(--color-text-secondary)', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                            Gerenciar Saldo <ChevronRight size={14} style={{ marginLeft: '4px' }} />
-                        </a>
-                    </div>
-                </div>
+                <StatCard
+                    label="Créditos em Frota"
+                    value={`${totalCreditsKwh.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kWh`}
+                    trend={{ label: 'Reserva Energética', type: 'success' }}
+                    tooltip="Total de créditos de energia acumulados na sua frota para uso futuro."
+                    icon={<Zap size={64} style={{ color: 'var(--color-primary)' }} />}
+                />
             </div>
 
             {/* Analytics Row */}
@@ -200,14 +152,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                         {[
-                            { label: 'Operação Normal', count: clients.filter(c => c.api_status === 'Normal').length, css: 'success' },
-                            { label: 'Sistema em Alerta', count: clients.filter(c => c.api_status === 'Atenção').length, css: 'warning' },
-                            { label: 'Falha de Sistema', count: clients.filter(c => c.api_status === 'Erro').length, css: 'danger' },
+                            { label: 'Operação Normal', count: clients.filter(c => c.api_status === 'Normal').length, status: 'Completo' },
+                            { label: 'Sistema em Alerta', count: clients.filter(c => c.api_status === 'Atenção').length, status: 'Divergente' },
+                            { label: 'Falha de Sistema', count: clients.filter(c => c.api_status === 'Erro').length, status: 'Erro' },
                         ].map((s, idx) => (
                             <div key={idx} style={{ padding: '16px', background: 'var(--color-bg-base)', borderRadius: '10px' }}>
                                 <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>{s.label}</div>
                                 <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{s.count}</div>
-                                <div style={{ marginTop: '8px' }}><span className={`badge badge-${s.css}`}>Tempo Real</span></div>
+                                <div style={{ marginTop: '8px' }}>
+                                    <StatusBadge status={s.status} label="Tempo Real" />
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -217,15 +171,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                     <h3 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--color-text-secondary)', marginBottom: '24px' }}>Status de Relatórios</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {[
-                            { label: 'Completo', count: enrichedClients.filter(c => c.status === 'Completo').length, badge: 'success' },
-                            { label: 'Divergente', count: enrichedClients.filter(c => c.status === 'Divergente').length, badge: 'warning' },
-                            { label: 'Incompleto', count: enrichedClients.filter(c => c.status === 'Incompleto').length, badge: 'danger' },
+                            { label: 'Completo', count: enrichedClients.filter(c => c.status === 'Completo').length, status: 'Completo' },
+                            { label: 'Divergente', count: enrichedClients.filter(c => c.status === 'Divergente').length, status: 'Divergente' },
+                            { label: 'Incompleto', count: enrichedClients.filter(c => c.status === 'Incompleto').length, status: 'Erro' },
                         ].map(s => (
                             <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--color-bg-base)', borderRadius: '10px' }}>
                                 <span style={{ fontSize: '13px', fontWeight: 500 }}>{s.label}</span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                     <span style={{ fontSize: '18px', fontWeight: 600 }}>{s.count}</span>
-                                    <span className={`badge badge-${s.badge}`}>•</span>
+                                    <StatusBadge status={s.status} label="•" />
                                 </div>
                             </div>
                         ))}
@@ -294,9 +248,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                         <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-primary)' }}>{ac.platform}</span>
                                     </td>
                                     <td style={{ padding: '12px 16px' }}>
-                                        <span className={`badge badge-${ac.status === 'Completo' ? 'success' : ac.status === 'Divergente' ? 'warning' : 'danger'}`} style={{ fontSize: '10px' }}>
-                                            {ac.status}
-                                        </span>
+                                        <StatusBadge status={ac.status} style={{ fontSize: '10px' }} />
                                     </td>
                                     <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
                                         {ac.updated_at ? new Date(ac.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '—'}

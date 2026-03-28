@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import WattsButton from './components/ui/WattsButton';
 import { Search, Bell, RefreshCw, FileText, Plus, FileArchive, Zap } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { useClients } from './hooks/useClients';
@@ -432,26 +433,26 @@ function App() {
                                     )}
 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <button
-                                            className="btn btn-outline"
-                                            style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '8px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        <WattsButton
+                                            variant="outline"
+                                            size="sm"
                                             onClick={() => handleBatchExport(setSelectedClientId)}
                                             title="Exportar Tudo"
+                                            icon={<FileArchive size={16} />}
                                         >
-                                            <FileArchive size={16} />
-                                            <span className="hide-mobile" style={{ marginLeft: '6px' }}>Exportar ZIP</span>
-                                        </button>
+                                            <span className="hide-mobile">Exportar ZIP</span>
+                                        </WattsButton>
 
-                                        <button
-                                            className="btn btn-primary"
-                                            style={{ height: '36px', padding: '0 16px', fontSize: '13px', borderRadius: '8px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                        <WattsButton
+                                            variant="primary"
+                                            size="sm"
                                             onClick={() => syncSystemsFromAPI()}
                                             disabled={isSyncingAPI}
                                             title="Sincronizar APIs"
+                                            icon={<RefreshCw size={16} className={isSyncingAPI ? 'spin' : ''} />}
                                         >
-                                            <RefreshCw size={16} className={isSyncingAPI ? 'spin' : ''} />
-                                            <span className="hide-mobile" style={{ marginLeft: '6px' }}>{isSyncingAPI ? 'Sincronizando...' : 'Atualizar Dados'}</span>
-                                        </button>
+                                            <span className="hide-mobile">{isSyncingAPI ? 'Sincronizando...' : 'Atualizar Dados'}</span>
+                                        </WattsButton>
 
 
                                         <button className="btn-icon" style={{ position: 'relative' }}>
@@ -550,7 +551,9 @@ function App() {
                         <div className="empty-state">
                             <WattsMascot state="dormindo" size={120} className="mb-4" />
                             <h3>Página em desenvolvimento</h3>
-                            <button className="btn btn-outline mt-4" onClick={() => setActiveTab('Painel')}>Voltar ao Dashboard</button>
+                            <WattsButton variant="outline" className="mt-4" onClick={() => setActiveTab('Painel')}>
+                                Voltar ao Dashboard
+                            </WattsButton>
                         </div>
                     )}
                 </div>

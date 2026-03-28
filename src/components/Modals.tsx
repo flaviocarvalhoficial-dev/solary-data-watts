@@ -1,6 +1,8 @@
 import React from 'react';
 import { X, Zap, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Search, FileText } from 'lucide-react';
 import { MappedSystem, parseAPsystemsXLS } from '../utils/xlsImporter';
+import WattsButton from './ui/WattsButton';
+import StatusBadge from './ui/StatusBadge';
 
 interface NewClientModalProps {
     show: boolean;
@@ -51,9 +53,9 @@ export const NewClientModal: React.FC<NewClientModalProps> = ({
                         <option>GoodWe</option>
                     </select>
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={loading}>
-                    {loading ? 'Salvando...' : 'Salvar Sistema'}
-                </button>
+                <WattsButton type="submit" variant="primary" loading={loading} style={{ marginTop: '8px' }}>
+                    Salvar Sistema
+                </WattsButton>
             </form>
         </div>
     );
@@ -96,8 +98,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     ))}
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                    <button className="btn btn-primary" style={{ flex: 1 }} onClick={onImportAll} disabled={list.length === 0}>Importar Todos</button>
-                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Fechar</button>
+                    <WattsButton variant="primary" style={{ flex: 1 }} onClick={onImportAll} disabled={list.length === 0}>Importar Todos</WattsButton>
+                    <WattsButton variant="outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Fechar</WattsButton>
                 </div>
             </div>
         </div>
@@ -257,11 +259,16 @@ export const XLSImportModal: React.FC<XLSImportModalProps> = ({
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                    <button className="btn btn-primary" style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        onClick={handleImport} disabled={stats.new + stats.updated === 0 || loading}>
-                        {loading ? 'Processando...' : <><CheckCircle2 size={18} /> Confirmar Importação ({stats.new + stats.updated} sistemas)</>}
-                    </button>
-                    <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</button>
+                    <WattsButton
+                        variant="primary"
+                        style={{ flex: 2 }}
+                        onClick={handleImport}
+                        disabled={stats.new + stats.updated === 0 || loading}
+                        icon={<CheckCircle2 size={18} />}
+                    >
+                        {loading ? 'Processando...' : `Confirmar Importação (${stats.new + stats.updated} sistemas)`}
+                    </WattsButton>
+                    <WattsButton variant="outline" style={{ flex: 1 }} onClick={() => setShow(false)}>Cancelar</WattsButton>
                 </div>
             </div>
         </div>

@@ -1,7 +1,9 @@
 import React from 'react';
-import { RefreshCw, Zap, FileArchive, Plus, Download, PencilLine, FileText, ChevronRight, ExternalLink } from 'lucide-react';
+import { RefreshCw, Zap, FileArchive, Plus, Download, PencilLine, FileText, ChevronRight, ExternalLink, FileSpreadsheet } from 'lucide-react';
 import { ActiveClient, getEmaPortalLink } from '../utils/solarHelpers';
 import WattsMascot from './WattsMascot';
+import WattsButton from './ui/WattsButton';
+import StatusBadge from './ui/StatusBadge';
 
 interface ClientsListViewProps {
     statusFilter: string;
@@ -125,38 +127,22 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                             <ExternalLink size={14} /> <span>Portal {platformFilter}</span>
                         </a>
                     )}
-                    <button
-                        className="btn"
-                        title="Adicionar Novo Sistema"
-                        style={{
-                            borderRadius: '8px',
-                            fontSize: '12px',
-                            padding: '8px 12px',
-                            whiteSpace: 'nowrap',
-                            backgroundColor: '#f3f3f3',
-                            border: '1px solid #D44E33',
-                            color: '#D44E33'
-                        }}
-                        onClick={() => setShowNewClientModal(true)}
-                    >
-                        <Plus size={14} /> Novo Sistema
-                    </button>
-                    <button
-                        className="btn"
+                    <WattsButton
+                        variant="outline"
                         title="Dados em Massa (XLS)"
-                        style={{
-                            borderRadius: '8px',
-                            fontSize: '12px',
-                            padding: '8px 12px',
-                            whiteSpace: 'nowrap',
-                            backgroundColor: '#f3f3f3',
-                            border: '1px solid #D44E33',
-                            color: '#D44E33'
-                        }}
                         onClick={() => setShowXLSImportModal && setShowXLSImportModal(true)}
+                        icon={<FileSpreadsheet size={14} />}
                     >
-                        <Plus size={14} /> Importar XLS
-                    </button>
+                        Importar XLS
+                    </WattsButton>
+                    <WattsButton
+                        variant="primary"
+                        title="Adicionar Novo Sistema"
+                        onClick={() => setShowNewClientModal(true)}
+                        icon={<Plus size={14} />}
+                    >
+                        Novo Sistema
+                    </WattsButton>
                 </div>
             </div>
 
@@ -246,9 +232,7 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                         </div>
                                     </td>
                                     <td style={{ padding: '20px 24px' }}>
-                                        <span className={`badge badge-${ac.status === 'Completo' ? 'success' : ac.status === 'Divergente' ? 'warning' : 'danger'}`}>
-                                            {ac.latestBill ? ac.latestBill.competency : 'Pendente'}
-                                        </span>
+                                        <StatusBadge status={ac.status} label={ac.latestBill ? ac.latestBill.competency : 'Pendente'} />
                                     </td>
                                     <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                                         <ChevronRight size={14} color="var(--color-text-muted)" />

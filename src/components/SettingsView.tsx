@@ -5,6 +5,8 @@ import {
     AtSign, Briefcase, Trash2, RefreshCw, Lock, ShieldCheck, MapPin, Phone,
     Share2, Zap, LayoutGrid, Globe, ExternalLink, AlertCircle, Plus, Info, Edit2, ChevronRight, Image as ImageIcon
 } from 'lucide-react';
+import WattsButton from './ui/WattsButton';
+import StatusBadge from './ui/StatusBadge';
 import { supabase } from '../lib/supabase';
 
 interface BrandingSettings {
@@ -212,9 +214,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                                     <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#111827' }}>Fabricantes Disponíveis</h3>
                                     <p style={{ fontSize: '13px', color: '#666' }}>Personalize ícones e cores para a listagem da frota.</p>
                                 </div>
-                                <button className="btn btn-primary" style={{ height: '38px', padding: '0 16px', fontSize: '13px', borderRadius: '10px' }} onClick={addNewBrand}>
-                                    <Plus size={16} /> Novo Fabricante
-                                </button>
+                                <WattsButton variant="primary" size="sm" onClick={addNewBrand} icon={<Plus size={16} />}>
+                                    Novo Fabricante
+                                </WattsButton>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -285,8 +287,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                                 </div>
 
                                 <div style={{ marginTop: '32px', display: 'flex', gap: '12px', borderTop: '1px solid #FED7AA', paddingTop: '24px' }}>
-                                    <button className="btn btn-primary" onClick={() => updateBrand(editingBrand)}>Confirmar Alteração</button>
-                                    <button className="btn btn-outline" style={{ background: '#fff' }} onClick={() => setEditingBrand(null)}>Cancelar</button>
+                                    <WattsButton variant="primary" onClick={() => updateBrand(editingBrand)}>Confirmar Alteração</WattsButton>
+                                    <WattsButton variant="outline" style={{ background: '#fff' }} onClick={() => setEditingBrand(null)}>Cancelar</WattsButton>
                                 </div>
                             </div>
                         )}
@@ -299,10 +301,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                 <button className="btn btn-outline" style={{ color: '#EF4444', borderColor: '#FEE2E2' }} onClick={() => window.location.reload()}>Descartar Tudo</button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                     {showSuccess && <span style={{ color: '#10B981', fontWeight: 700, fontSize: '14px' }}>Configurações gravadas!</span>}
-                    <button className="btn btn-primary" onClick={handleSave} disabled={isSaving} style={{ padding: '14px 60px', borderRadius: '14px', fontWeight: 800, fontSize: '15px' }}>
-                        {isSaving ? <RefreshCw className="spin" size={20} /> : <Save size={20} />}
-                        {isSaving ? 'Salvando...' : 'Gravar Todas Alterações'}
-                    </button>
+                    <WattsButton
+                        variant="primary"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        loading={isSaving}
+                        style={{ padding: '0 60px' }}
+                        icon={<Save size={20} />}
+                    >
+                        Gravar Todas Alterações
+                    </WattsButton>
                 </div>
             </div>
 

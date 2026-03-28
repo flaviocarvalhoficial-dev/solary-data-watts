@@ -29,6 +29,7 @@ export interface ReportResult {
     payback_anos: number | null;
     payback_meses: number | null;
     payback_texto_aproximado: string;
+    payback_texto_restante: string;
     tempo_restante_meses: number;
     tempo_decorrido_meses: number;
     progresso_payback: number;
@@ -188,6 +189,23 @@ export function calculateFinalReport(
         data_estimada_retorno = dRetorno.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '').toUpperCase();
     }
 
+    let payback_texto_restante = '—';
+    if (tempo_restante_meses > 0) {
+        const rAnos = Math.floor(tempo_restante_meses / 12);
+        const rMeses = Math.round(tempo_restante_meses % 12);
+
+        const anosTexto = rAnos > 0 ? `${rAnos} ${rAnos === 1 ? 'ano' : 'anos'}` : '';
+        const mesesTexto = rMeses > 0 ? `${rMeses} ${rMeses === 1 ? 'mês' : 'meses'}` : '';
+
+        if (anosTexto && mesesTexto) {
+            payback_texto_restante = `${anosTexto} e ${mesesTexto}`;
+        } else {
+            payback_texto_restante = anosTexto || mesesTexto || '0 meses';
+        }
+    } else if (tempo_restante_meses === 0 && payback_meses) {
+        payback_texto_restante = 'Payback Concluído';
+    }
+
     let payback_texto_aproximado = 'N/A';
     if (payback_anos) {
         const anos = Math.floor(payback_anos);
@@ -228,6 +246,7 @@ export function calculateFinalReport(
         payback_anos,
         payback_meses,
         payback_texto_aproximado,
+        payback_texto_restante,
         tempo_restante_meses,
         tempo_decorrido_meses,
         progresso_payback,

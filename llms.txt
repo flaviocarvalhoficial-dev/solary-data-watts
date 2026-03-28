@@ -1,0 +1,32 @@
+# Watts — AI Context & Discovery (llms.txt)
+
+> **Project Name**: Watts (Solary Data)
+> **Stack**: Vite, React, TypeScript, Supabase (Postgres), Edge Functions
+> **Primary Goal**: Solar monitoring automation & executive report generation.
+
+## 🧠 Project Core Logic
+
+- **Solar Calculations**: `src/utils/solarHelpers.ts` (Calculates ROI, Payback, Economy).
+- **OCR Parser**: `src/hooks/useBillUpload.ts` (Regex-based PDF extraction for Equatorial Pará).
+- **API Sync**: `src/hooks/useSolarSync.ts` (Orchestrates APsystems data via Edge Functions).
+- **Executive Reports**: `src/components/ExecutiveReport.tsx` (Logic for generating PDF output).
+
+## 📂 Key File Mapping
+
+- `src/App.tsx`: Main application shell and router.
+- `src/hooks/useEnrichedClients.ts`: Core data merging (Clients + Systems + Bills).
+- `src/components/DashboardView.tsx`: Main operational dashboard.
+- `supabase/functions/aps-proxy-deep-sync/index.ts`: Edge function for APsystems API proxy.
+- `src/index.css`: Global styles and Design System tokens (VDS).
+
+## 🚀 Architectural Principles
+
+- **Veselty Design System (VDS)**: Flat-first, minimal shadows, high-density data.
+- **API Quota Management**: 1,000 requests/month hard-cap for APsystems (LV0).
+- **Marco Zero**: Manual override support for historical baseline in ROI calculations.
+- **GD2 Rules**: Consistent handling of "Parte Energética Líquida" and distribution charges.
+
+## 🛠️ Development Tools
+- Task tracking: `C:\Users\flavi\.gemini\antigravity\brain\8f258d87-0440-4aae-9216-8dea334bfeed\task.md`
+- Deployment: Supabase CLI
+- Build: `npm run build`

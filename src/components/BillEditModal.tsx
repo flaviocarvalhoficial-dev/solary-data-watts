@@ -1,5 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import WattsButton from './ui/WattsButton';
+import StatusBadge from './ui/StatusBadge';
 
 interface BillEditModalProps {
     isOpen: boolean;
@@ -260,8 +262,8 @@ export const BillEditModal: React.FC<BillEditModalProps> = ({
                 </div>
 
                 <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-                    <button className="btn btn-primary" style={{ flex: 1, padding: '12px' }} onClick={onSave}>Salvar Relatório</button>
-                    <button className="btn btn-outline" style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid var(--color-border)' }} onClick={onClose}>Cancelar</button>
+                    <WattsButton variant="primary" style={{ flex: 1 }} onClick={onSave}>Salvar Relatório</WattsButton>
+                    <WattsButton variant="outline" style={{ flex: 1 }} onClick={onClose}>Cancelar</WattsButton>
                 </div>
             </div>
         </div>
