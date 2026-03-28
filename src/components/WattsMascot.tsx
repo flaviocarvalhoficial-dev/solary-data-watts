@@ -22,7 +22,7 @@ const WattsMascot: React.FC<WattsMascotProps> = ({
     className = "",
     floated = false
 }) => {
-    // Mapeamento dos arquivos SVG localizados em src/Mascote Watss
+    // Mapeamento dos arquivos SVG localizados em public/mascote-watts
     const mascotMap: Record<MascotState, string> = {
         normal: '/mascote-watts/normal.svg',
         feliz: '/mascote-watts/feliz.svg',
