@@ -86,7 +86,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                             <path d={`${generatePath()} L 100 60 L 0 60 Z`} fill="var(--color-primary-muted)" style={{ opacity: 0.15 }} />
                         </svg>
                     }
-                    onClickDetail={() => setActiveTab('Clients')}
+                    onClickDetail={() => setActiveTab('Frota')}
                 />
 
                 <StatCard
@@ -194,7 +194,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>Sistemas Recentes</h3>
-                    <button onClick={() => setActiveTab('Clients')} style={{ fontSize: '12px', color: 'var(--color-primary)', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
+                    <button onClick={() => setActiveTab('Frota')} style={{ fontSize: '12px', color: 'var(--color-primary)', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>
                         Ver Todos →
                     </button>
                 </div>
@@ -226,7 +226,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                 </tr>
                             ) : enrichedClients.slice(0, 8).map(ac => (
                                 <tr key={ac.id}
-                                    onClick={() => { setActiveTab('Clients'); setSelectedClientId(ac.id); }}
+                                    onClick={() => { setActiveTab('Frota'); setSelectedClientId(ac.id); }}
                                     style={{ borderBottom: '1px solid var(--color-bg-base)', cursor: 'pointer', transition: 'background 0.2s' }}
                                     className="table-row-hover"
                                 >

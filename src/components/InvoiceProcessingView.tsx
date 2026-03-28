@@ -1,4 +1,5 @@
 import React from 'react';
+import WattsMascot from './WattsMascot';
 import { FileText, RefreshCw, Zap, FileArchive } from 'lucide-react';
 
 interface InvoiceProcessingViewProps {
@@ -36,7 +37,7 @@ const InvoiceProcessingView: React.FC<InvoiceProcessingViewProps> = ({
                 onDrop={handleDrop}
             >
                 <div style={{ marginBottom: '32px', position: 'relative', display: 'inline-block' }}>
-                    <img src="/src/assets/mascot/celebrando.svg" alt="Watts Mascote" style={{ width: '160px', height: 'auto' }} />
+                    <WattsMascot state={isDragging ? 'saudando' : 'celebrando'} size={160} />
                 </div>
                 <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px', letterSpacing: '-0.02em' }}>
                     {isDragging ? 'Solte para Iniciar!' : 'Central de Processamento de Faturas'}

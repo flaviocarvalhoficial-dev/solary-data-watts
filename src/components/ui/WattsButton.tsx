@@ -87,6 +87,7 @@ const WattsButton: React.FC<WattsButtonProps> = ({
         gap: '8px',
         borderRadius: 'var(--radius-btn)',
         fontWeight: 600,
+        whiteSpace: 'nowrap',
         cursor: disabled || loading ? 'not-allowed' : 'pointer',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
         opacity: disabled || loading ? 0.6 : 1,

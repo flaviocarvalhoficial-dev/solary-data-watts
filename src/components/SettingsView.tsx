@@ -175,6 +175,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                                 <div><label style={{ fontSize: '11px', fontWeight: 800, color: '#666', marginBottom: '8px', display: 'block' }}>LOGIN</label><input type="text" style={{ ...inputStyle, background: '#F9FAFB' }} value={user?.email} disabled /></div>
                             </div>
                         </div>
+
+                        <div style={{ marginTop: '40px', borderTop: '1px solid #F1F1F1', paddingTop: '32px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                                <ShieldCheck size={20} color="var(--color-primary)" />
+                                <h3 style={{ fontSize: '16px', fontWeight: 700 }}>Segurança da Conta</h3>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                <div>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#666', marginBottom: '8px', display: 'block' }}>ALTERAR SENHA</label>
+                                    <input type="password" style={inputStyle} placeholder="Sua nova senha" />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#666', marginBottom: '8px', display: 'block' }}>CONFIRMAR NOVA SENHA</label>
+                                    <input type="password" style={inputStyle} placeholder="Repita a nova senha" />
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+                                <WattsButton variant="outline" size="sm" icon={<Lock size={14} />}>
+                                    Atualizar Senha
+                                </WattsButton>
+                                <WattsButton variant="ghost" size="sm" style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+                                    Esqueci minha senha
+                                </WattsButton>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -306,7 +331,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, branding, setBranding
                         onClick={handleSave}
                         disabled={isSaving}
                         loading={isSaving}
-                        style={{ padding: '0 60px' }}
+                        style={{ padding: '12px 64px' }}
                         icon={<Save size={20} />}
                     >
                         Gravar Todas Alterações
