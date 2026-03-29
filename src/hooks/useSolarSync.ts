@@ -63,27 +63,24 @@ export function useSolarSync({
                     const res = await APsystemsEnergyService.syncSingleSystem(targetId, targetSid, currentSystem?.tem_meter === true, true);
 
                     if (res.success) {
-                        await logAuditEvent('SYSTEM_SYNC_INDIVIDUAL', targetId, null, { sid: targetSid, platform: 'APsystems' });
-                        alert(`Sincronização do sistema ${targetSid} concluída!`);
+                        await logAuditEvent('SYSTEM_SYNC_INDIVIDUAL', targetId, null, { sid: targetSid, platform: 'APsystems', mode: 'background' });
+                        alert(`Sistema ${targetSid} adicionado à fila de sincronização em segundo plano.`);
                     } else {
-                        alert(`Erro ao sincronizar ${targetSid}: ${res.message}`);
+                        alert(`Erro ao enfileirar ${targetSid}: ${res.message}`);
                     }
                 } else {
-                    // Batch sync (Módulo 6) - Máximo 5 por vez respeitando rate limit
+                    // Batch sync (Módulo 6)
                     const result = await APsystemsEnergyService.syncEnergyData();
                     await logAuditEvent('SYSTEM_SYNC_BATCH', null, null, {
                         count: result.sucesso,
                         platform: 'APsystems',
-                        total: result.total_processados,
-                        aborted: result.aborted
+                        mode: 'background'
                     });
 
-                    if (result.aborted) {
-                        alert(`Alerta: Limite excedido (Erro 2005).\nO sistema parou para evitar bloqueios.\nSistemas atualizados agora: ${result.sucesso}`);
-                    } else if (result.total_processados === 0) {
+                    if (result.already_synced) {
                         alert(`Todos os sistemas já foram sincronizados hoje.\nNenhuma nova tentativa necessária agora.`);
                     } else {
-                        alert(`Lote de sistemas atualizado com sucesso!\nSincronizados: ${result.sucesso}\nFalhas: ${result.falhas}\nTempo: ${result.tempo_execucao}s`);
+                        alert(`Lote de ${result.sucesso} sistemas enviado para processamento em segundo plano!\nVocê verá as atualizações gradualmente no dashboard.`);
                     }
                 }
 

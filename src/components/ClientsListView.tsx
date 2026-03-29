@@ -216,9 +216,9 @@ const ClientsListView: React.FC<ClientsListViewProps> = ({
                                         <div style={{ fontSize: '12px', color: 'var(--color-text-primary)' }}>{ac.city || '—'}</div>
                                         <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Conta {ac.uc}</div>
                                     </td>
-                                    <td style={{ padding: '20px 24px', fontSize: '13px', color: 'var(--color-text-primary)' }}>{ac.generation > 0 ? `${ac.generation.toFixed(1)} kWh` : '—'}</td>
+                                    <td style={{ padding: '20px 24px', fontSize: '13px', color: 'var(--color-text-primary)' }}>{(ac.generation !== undefined && ac.generation !== null && ac.generation > 0) ? `${ac.generation.toFixed(1)} kWh` : '—'}</td>
                                     <td style={{ padding: '20px 24px', fontSize: '13px', fontWeight: 600, color: (ac.energy_today || 0) > 0 ? 'var(--color-trend-up)' : 'var(--color-text-muted)' }}>
-                                        {ac.energy_today ? `${ac.energy_today.toFixed(1)}` : '—'}
+                                        {(ac.energy_today !== undefined && ac.energy_today !== null) ? `${ac.energy_today.toFixed(1)}` : '—'}
                                     </td>
                                     <td style={{ padding: '20px 24px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

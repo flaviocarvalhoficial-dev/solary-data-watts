@@ -90,7 +90,6 @@ export const APsystemsEnergyService = {
 
     async syncSingleSystem(id: string, sid: string, tem_meter: boolean = false, force: boolean = false) {
         // Módulo 4: Lock de Recursos (Semáforo)
-        // 1. Verificar se já não está sincronizando ou se foi atualizado hoje
         const todayStr = new Date().toISOString().split('T')[0];
         const { data: current } = await supabase
             .from('systems')
@@ -98,102 +97,56 @@ export const APsystemsEnergyService = {
             .eq('id', id)
             .single();
 
-        if (current?.sync_status === 'SYNCING') {
-            console.warn(`[SYNC LOCK] Sistema ${sid} já está em processo de sincronização.`);
-            return { success: false, error: 'SYNCING', message: 'Já sendo sincronizado' };
-        }
-
         if (!force && current?.last_sync && current.last_sync.startsWith(todayStr)) {
             console.log(`[SYNC CACHE] Sistema ${sid} já atualizado hoje. Ignorando.`);
             return { success: true, cached: true };
         }
 
-        // 2. Travar recurso
-        await supabase.from('systems').update({ sync_status: 'SYNCING', sync_error: null }).eq('id', id);
+        // Enfileirar para processamento em background
+        const { data, error } = await supabase.functions.invoke('sync-enqueue', {
+            body: { system_ids: [id], platform: 'APsystems' }
+        });
 
-        try {
-            const snapshot = await this.buildEnergySnapshot({ sid });
-
-            // 3. Sucesso: Atualizar dados e liberar
-            const { error: updateError } = await supabase
-                .from('systems')
-                .update({
-                    last_generation: snapshot.generation.lifetime,
-                    energy_today: snapshot.generation.today,
-                    last_sync: new Date().toISOString(),
-                    sync_status: 'IDLE',
-                    sync_error: null
-                })
-                .eq('id', id);
-
-            if (updateError) throw updateError;
-
-            console.log(`[SYNC SUCCESS] Sistema ${sid} atualizado.`);
-            return { success: true, snapshot };
-        } catch (err: any) {
-            const isRateLimit = err.message?.includes('RATE_LIMIT_EXCEEDED') ||
-                err.message?.includes('2005') ||
-                err.message?.includes('Limite');
-
-            console.error(`[SYNC ERROR] Sistema ${sid}:`, err.message);
-
-            // 4. Falha: Registrar erro e liberar
-            await supabase
-                .from('systems')
-                .update({
-                    sync_status: isRateLimit ? 'IDLE' : 'ERROR',
-                    sync_error: err.message
-                })
-                .eq('id', id);
-
-            if (isRateLimit) {
-                return { success: false, error: 'RATE_LIMIT', message: err.message };
-            }
-            return { success: false, error: 'FAILURE', message: err.message };
+        if (error || !data?.success) {
+            throw new Error(`Erro ao enfileirar: ${error?.message || data?.error}`);
         }
+
+        return { success: true, is_background: true, message: 'Adicionado à fila de processamento' };
     },
 
     async syncEnergyData() {
-        const MAX_BATCH_SIZE = 5;
-        const startTime = Date.now();
         const todayStr = new Date().toISOString().split('T')[0];
 
-        // Buscar sistemas priorizando os que não sincronizaram hoje e NÃO estão em erro ou sincronizando
+        // 1. Buscar sistemas que não sincronizaram hoje
         const { data: dbSystems, error: dbError } = await supabase
             .from('systems')
-            .select('id, sid, last_sync, sync_status, tem_meter')
+            .select('id, sid')
             .or(`last_sync.is.null,last_sync.lt.${todayStr}`)
             .eq('sync_status', 'IDLE')
-            .order('last_sync', { ascending: true, nullsFirst: true })
-            .limit(MAX_BATCH_SIZE);
+            .order('last_sync', { ascending: true, nullsFirst: true });
 
-        if (dbError) throw new Error(`Erro ao buscar sistemas para lote: ${dbError.message}`);
+        if (dbError) throw new Error(`Erro ao buscar sistemas: ${dbError.message}`);
 
-        const result = {
-            total_processados: dbSystems?.length || 0,
-            sucesso: 0,
-            falhas: 0,
-            aborted: false,
-            tempo_execucao: 0
-        };
-
-        if (!dbSystems || dbSystems.length === 0) return result;
-
-        for (const sys of dbSystems) {
-            const syncRes = await this.syncSingleSystem(sys.id, sys.sid, sys.tem_meter === true);
-            if (syncRes.success) result.sucesso++;
-            else {
-                result.falhas++;
-                if (syncRes.error === 'RATE_LIMIT') {
-                    result.aborted = true;
-                    break;
-                }
-            }
-            // Delay de segurança deliberado
-            await new Promise(resolve => setTimeout(resolve, 1500));
+        if (!dbSystems || dbSystems.length === 0) {
+            return { total_processados: 0, sucesso: 0, falhas: 0, already_synced: true };
         }
 
-        result.tempo_execucao = Math.ceil((Date.now() - startTime) / 1000);
-        return result;
+        const systemIds = dbSystems.map(s => s.id);
+
+        // 2. Enfileirar no Backend
+        const { data, error: enqueueError } = await supabase.functions.invoke('sync-enqueue', {
+            body: { system_ids: systemIds, platform: 'APsystems' }
+        });
+
+        if (enqueueError || !data?.success) {
+            throw new Error(`Erro ao enfileirar sincronização: ${enqueueError?.message || data?.error}`);
+        }
+
+        return {
+            total_processados: dbSystems.length,
+            sucesso: data.enqueued,
+            falhas: dbSystems.length - data.enqueued,
+            is_background: true
+        };
     }
 };

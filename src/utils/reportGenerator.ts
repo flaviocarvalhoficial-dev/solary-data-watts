@@ -13,27 +13,42 @@ export const generateClientReport = async (elementId: string, data: FinalReportO
         backgroundColor: '#ffffff'
     });
 
-    // Converte para JPEG com qualidade controlada (0.8) para reduzir tamanho do arquivo significativamente
+    // Converte para JPEG com qualidade controlada (0.8) para reduzir tamanho
     const imgData = canvas.toDataURL('image/jpeg', 0.8);
 
-    // Target standard A4 width (210mm) but calculate dynamic height to avoid distortion
-    const pdfWidth = 210;
-    const canvasRatio = canvas.height / canvas.width;
-    const pdfHeight = pdfWidth * canvasRatio;
-
-    // Criamos um documento com a altura real do conteúdo para evitar que fique achatado
-    const finalPdf = new jsPDF({
+    // PDF em formato A4 (210mm x 297mm)
+    const pdf = new jsPDF({
         orientation: 'p',
         unit: 'mm',
-        format: [pdfWidth, pdfHeight],
+        format: 'a4',
         compress: true
     });
 
-    finalPdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    if (save) {
-        finalPdf.save(`relatorio_${data.cliente.replace(/\s/g, '_')}_${data.competencia.replace(/\//g, '-')}.pdf`);
+    // Proporção para manter a largura do PDF
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Adiciona a primeira página
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+    heightLeft -= pageHeight;
+
+    // Se o conteúdo for maior que uma página A4, adiciona novas páginas
+    while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pageHeight;
     }
 
-    return finalPdf.output('blob');
+    if (save) {
+        pdf.save(`relatorio_${data.cliente.replace(/\s/g, '_')}_${data.competencia.replace(/\//g, '-')}.pdf`);
+    }
+
+    return pdf.output('blob');
 };

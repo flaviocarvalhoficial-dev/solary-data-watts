@@ -137,16 +137,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
                     </div>
 
-                    {isSyncingAPI && syncTotal > 0 && (
-                        <div style={{ marginBottom: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 500, color: 'var(--color-primary)', marginBottom: '6px' }}>
-                                <span>Sincronizando sistemas locais com a plataforma...</span>
-                                <span>{syncProgress} / {syncTotal} ({Math.round((syncProgress / syncTotal) * 100)}%)</span>
+                    {enrichedClients.some(ac => ac.sync_status === 'SYNCING') && (
+                        <div style={{ marginBottom: '24px', padding: '12px', background: 'rgba(232, 89, 60, 0.05)', borderRadius: '8px', border: '1px solid rgba(232, 89, 60, 0.1)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', fontSize: '12px', fontWeight: 600 }}>
+                                <RefreshCw size={14} className="spin" />
+                                Sincronização em segundo plano ativa...
                             </div>
-                            <div style={{ width: '100%', height: '8px', background: '#F5F5F0', borderRadius: '4px', overflow: 'hidden' }}>
-                                <div style={{ width: `${(syncProgress / syncTotal) * 100}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.3s ease' }} />
-                                {/* Emulating Coral Gradient mentioned in VDS with single color primary or gradient if possible */}
-                            </div>
+                            <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+                                Os dados estão sendo atualizados gradualmente para evitar bloqueios da API.
+                            </p>
                         </div>
                     )}
 
@@ -207,6 +206,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cidade</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Conta Contrato</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plataforma</th>
+                                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status API</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status do Relatório</th>
                                 <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Última Atu.</th>
                                 <th style={{ textAlign: 'right', padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ação</th>
@@ -248,10 +248,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                         <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-primary)' }}>{ac.platform}</span>
                                     </td>
                                     <td style={{ padding: '12px 16px' }}>
+                                        {ac.sync_status === 'SYNCING' ? (
+                                            <span style={{ fontSize: '11px', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                                <RefreshCw size={12} className="spin" /> Atualizando
+                                            </span>
+                                        ) : ac.sync_status === 'ERROR' ? (
+                                            <span style={{ fontSize: '11px', color: 'var(--color-status-danger-text)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }} title={ac.sync_error}>
+                                                <AlertCircle size={12} /> Erro
+                                            </span>
+                                        ) : (
+                                            <span style={{ fontSize: '11px', color: 'var(--color-status-success-text)', fontWeight: 600 }}>
+                                                Sincronizado
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '12px 16px' }}>
                                         <StatusBadge status={ac.status} style={{ fontSize: '10px' }} />
                                     </td>
                                     <td style={{ padding: '12px 16px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                                        {ac.updated_at ? new Date(ac.updated_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '—'}
+                                        {ac.last_sync ? new Date(ac.last_sync).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
                                     </td>
                                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>

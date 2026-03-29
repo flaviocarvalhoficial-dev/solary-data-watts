@@ -6,6 +6,8 @@ export type ActiveClient = Client & {
     latestBill: Bill | null;
     status: 'Completo' | 'Divergente' | 'Incompleto';
     energy_today?: number;
+    last_sync?: string;
+    tem_meter?: boolean;
     api_status?: string;
     sync_status?: 'IDLE' | 'SYNCING' | 'ERROR';
     sync_error?: string;
